@@ -90,6 +90,7 @@ tap_action:
 | `fonts` | `google` | `google` loads Manrope/Sora from Google Fonts; `theme` uses your HA theme font (no external request). |
 | `height` | `290px` | Minimum height (number = px, or any CSS length). |
 | `chips` | `[weather]` | See [Chips](#chips). |
+| `show_forecast` | — | Visual editor switch for the forecast. `false` hides it even when `forecast` is set. |
 | `forecast` | `false` | `true` or an object to show the forecast, see [Forecast](#forecast). |
 | `tap_action`, `hold_action`, `double_tap_action` | `none` | Standard [Home Assistant actions](https://www.home-assistant.io/dashboards/actions/) for the whole card (chips have their own). |
 | `preview_hour`, `preview_condition` | — | Freeze the hour (e.g. `21.5`) or the weather condition (e.g. `snowy`) to try a look. |
@@ -122,7 +123,7 @@ weather_effects:
 
 ## Forecast
 
-Off by default. `forecast: true` shows the next 5 days with an icon, the max and min temperature and a min/max bar. Or set the details:
+Off by default. In the visual editor: turn on **Show forecast**, details are in the **Forecast** section. In YAML: `show_forecast: true` or `forecast: true` shows the next 5 days with an icon, the max and min temperature and a min/max bar. Or set the details:
 
 ```yaml
 forecast:

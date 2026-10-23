@@ -219,9 +219,11 @@ export const FORECAST_POSITIONS = ["right", "below"];
  * `forecast: true` or an object -> normalised options, or null when the forecast is off.
  * Throws readable errors for bad values (shown by Lovelace in place of the card).
  */
-export function normalizeForecast(f) {
-  if (f === undefined || f === null || f === false) return null;
-  const o = f === true ? {} : f;
+export function normalizeForecast(f, show) {
+  // `show_forecast` (visual editor switch) wins; without it, `forecast: true` / an object turns it on
+  if (show === false) return null;
+  if (show !== true && (f === undefined || f === null || f === false)) return null;
+  const o = f === true || f === undefined || f === null || f === false ? {} : f;
   if (typeof o !== "object" || Array.isArray(o)) throw new Error("forecast must be true, false or an object");
   const type = o.type === undefined ? "daily" : String(o.type);
   if (FORECAST_TYPES.indexOf(type) < 0) throw new Error(`forecast.type: unknown type "${o.type}". Valid: ${FORECAST_TYPES.join(", ")}`);

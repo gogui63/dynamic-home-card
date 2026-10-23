@@ -101,7 +101,7 @@ class DynamicHomeCard extends HTMLElement {
       if (!n) throw new Error(`chips[${i}] is invalid: use "weather", an entity id, or an object with "entity"`);
       return n;
     });
-    const forecast = normalizeForecast(config.forecast);
+    const forecast = normalizeForecast(config.forecast, config.show_forecast);
     const old = this._config;
     this._config = Object.assign({
       show_time: true, show_date: true, show_greeting: true, show_world_name: false,
@@ -161,7 +161,17 @@ class DynamicHomeCard extends HTMLElement {
           { name: "show_date", selector: { boolean: {} } },
           { name: "show_greeting", selector: { boolean: {} } },
           { name: "show_world_name", selector: { boolean: {} } },
-          { name: "weather_sky", selector: { boolean: {} } }
+          { name: "weather_sky", selector: { boolean: {} } },
+          { name: "show_forecast", selector: { boolean: {} } }
+        ] },
+        { type: "expandable", name: "forecast", flatten: false, icon: "mdi:weather-partly-snowy-rainy", schema: [
+          { type: "grid", name: "", schema: [
+            { name: "type", selector: { select: { mode: "dropdown", options: ["daily", "hourly"].map((v) => ({ value: v, label: v })) } } },
+            { name: "position", selector: { select: { mode: "dropdown", options: ["right", "below"].map((v) => ({ value: v, label: v })) } } },
+            { name: "count", selector: { number: { min: 1, max: 12, mode: "box" } } },
+            { name: "decimals", selector: { number: { min: 0, max: 2, mode: "box" } } },
+            { name: "range_bar", selector: { boolean: {} } }
+          ] }
         ] }
       ],
       computeLabel: (s) => {

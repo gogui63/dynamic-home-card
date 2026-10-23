@@ -138,3 +138,10 @@ test("forecast min/max bars stay inside the range and are always visible", () =>
   assert.equal(forecastRange([{ lo: null, hi: null }]), null);
   assert.deepEqual(rangeBar({ lo: 5, hi: 5 }, { min: 5, max: 5 }), { from: 0, to: 100 });
 });
+
+test("forecast: show_forecast switch from the visual editor", () => {
+  assert.deepEqual(normalizeForecast(undefined, true), { type: "daily", position: "right", count: 5, decimals: 0, range_bar: true });
+  assert.equal(normalizeForecast({ count: 3 }, false), null, "switch off wins over the options");
+  assert.equal(normalizeForecast({ count: 3 }, true).count, 3);
+  assert.equal(normalizeForecast({ count: 3 }, undefined).count, 3, "YAML without the switch still works");
+});

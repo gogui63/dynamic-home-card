@@ -309,3 +309,31 @@ test("forecast: falls back to the legacy forecast attribute, rejects bad options
   assert.equal(fcTexts(card).length, 2);
   assert.throws(() => card.setConfig({ forecast: { type: "weekly" } }), /forecast.type/);
 });
+
+test("visual editor: forecast switch and expandable options, French labels", () => {
+  const { w } = env();
+  const C = w.customElements.get("dynamic-home-card");
+  const form = C.getConfigForm();
+  const flat = JSON.stringify(form.schema);
+  assert.ok(flat.includes('"show_forecast"'));
+  const exp = form.schema.find((x) => x.type === "expandable" && x.name === "forecast");
+  assert.ok(exp, "forecast section");
+  const names = exp.schema[0].schema.map((x) => x.name);
+  same(names, ["type", "position", "count", "decimals", "range_bar"]);
+  const ha = w.document.createElement("home-assistant"); ha.hass = { locale: { language: "fr" } }; w.document.body.appendChild(ha);
+  assert.equal(form.computeLabel({ name: "show_forecast" }), "Afficher les prévisions");
+  assert.equal(form.computeLabel({ name: "forecast" }), "Prévisions");
+});
+
+test("show_forecast: false hides it, true shows defaults", async () => {
+  const { w } = env();
+  const hass = hassFor(STATES);
+  const card = mount(w, { weather_entity: "weather.openweathermap", show_forecast: false, forecast: { count: 3 } }, hass, new Date(2026, 9, 23, 22, 30));
+  await sleep(5);
+  assert.equal(hass._subs.length, 0);
+  card.setConfig({ weather_entity: "weather.openweathermap", show_forecast: true });
+  await sleep(5);
+  assert.equal(hass._subs.length, 1);
+  hass._subs[0].cb({ forecast: FC });
+  assert.equal(qa(card, ".fc-day").length, 5);
+});

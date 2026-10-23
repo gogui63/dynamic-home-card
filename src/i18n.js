@@ -16,7 +16,9 @@ export const I18N = {
       weather_entity: "Weather entity", sun_entity: "Sun entity", world: "World", effect: "Effect", language: "Language",
       theme: "Theme", name: "Name in greeting", time_format: "Time format", show_time: "Show time", show_date: "Show date",
       show_greeting: "Show greeting", show_world_name: "Show world name", weather_sky: "Sky follows the weather",
-      windows: "Window lights", effect_intensity: "Effect intensity"
+      windows: "Window lights", effect_intensity: "Effect intensity",
+      show_forecast: "Show forecast", forecast: "Forecast", type: "Forecast type (daily / hourly)",
+      position: "Position (right / below)", count: "Days or hours shown", decimals: "Decimals", range_bar: "Min/max bar"
     }
   },
   fr: {
@@ -32,7 +34,9 @@ export const I18N = {
       weather_entity: "Entité météo", sun_entity: "Entité soleil", world: "Monde", effect: "Effet", language: "Langue",
       theme: "Thème", name: "Prénom dans la salutation", time_format: "Format de l'heure", show_time: "Afficher l'heure",
       show_date: "Afficher la date", show_greeting: "Afficher la salutation", show_world_name: "Afficher le nom du monde",
-      weather_sky: "Le ciel suit la météo", windows: "Fenêtres éclairées", effect_intensity: "Intensité de l'effet"
+      weather_sky: "Le ciel suit la météo", windows: "Fenêtres éclairées", effect_intensity: "Intensité de l'effet",
+      show_forecast: "Afficher les prévisions", forecast: "Prévisions", type: "Type (journalières / horaires)",
+      position: "Position (à droite / en dessous)", count: "Nombre de jours ou d'heures", decimals: "Décimales", range_bar: "Barre min/max"
     }
   }
 };

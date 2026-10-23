@@ -85,12 +85,13 @@ Toutes les options, puces et actions sont décrites dans le [README anglais](REA
 | `fonts` | `google` | `theme` pour utiliser la police du thème HA (aucune requête externe). |
 | `windows` | `auto` | Fenêtres éclairées : `auto` (la nuit), `on`, `off`, une entité ou une liste d'entités. |
 | `chips` | `[weather]` | Liste des puces. |
+| `show_forecast` | — | Interrupteur des prévisions dans l'éditeur visuel. `false` les masque même si `forecast` est défini. |
 | `forecast` | `false` | `true` ou un objet pour afficher les prévisions, voir [Prévisions](#prévisions). |
 | `preview_hour`, `preview_condition` | — | Figer l'heure ou la météo pour tester un rendu. |
 
 ## Prévisions
 
-Désactivées par défaut. `forecast: true` affiche les 5 prochains jours avec une icône, la température max et min, et une barre min/max. Ou détaillez :
+Désactivées par défaut. Dans l'éditeur visuel : activez **Afficher les prévisions**, les réglages sont dans la section **Prévisions**. En YAML : `show_forecast: true` ou `forecast: true` affiche les 5 prochains jours avec une icône, la température max et min, et une barre min/max. Ou détaillez :
 
 ```yaml
 forecast:

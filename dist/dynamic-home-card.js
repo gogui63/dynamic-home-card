@@ -916,7 +916,9 @@ const I18N = {
       weather_entity: "Weather entity", sun_entity: "Sun entity", world: "World", effect: "Effect", language: "Language",
       theme: "Theme", name: "Name in greeting", time_format: "Time format", show_time: "Show time", show_date: "Show date",
       show_greeting: "Show greeting", show_world_name: "Show world name", weather_sky: "Sky follows the weather",
-      windows: "Window lights", effect_intensity: "Effect intensity"
+      windows: "Window lights", effect_intensity: "Effect intensity",
+      show_forecast: "Show forecast", forecast: "Forecast", type: "Forecast type (daily / hourly)",
+      position: "Position (right / below)", count: "Days or hours shown", decimals: "Decimals", range_bar: "Min/max bar"
     }
   },
   fr: {
@@ -932,7 +934,9 @@ const I18N = {
       weather_entity: "Entité météo", sun_entity: "Entité soleil", world: "Monde", effect: "Effet", language: "Langue",
       theme: "Thème", name: "Prénom dans la salutation", time_format: "Format de l'heure", show_time: "Afficher l'heure",
       show_date: "Afficher la date", show_greeting: "Afficher la salutation", show_world_name: "Afficher le nom du monde",
-      weather_sky: "Le ciel suit la météo", windows: "Fenêtres éclairées", effect_intensity: "Intensité de l'effet"
+      weather_sky: "Le ciel suit la météo", windows: "Fenêtres éclairées", effect_intensity: "Intensité de l'effet",
+      show_forecast: "Afficher les prévisions", forecast: "Prévisions", type: "Type (journalières / horaires)",
+      position: "Position (à droite / en dessous)", count: "Nombre de jours ou d'heures", decimals: "Décimales", range_bar: "Barre min/max"
     }
   }
 };
@@ -1293,9 +1297,11 @@ const FORECAST_POSITIONS = ["right", "below"];
  * `forecast: true` or an object -> normalised options, or null when the forecast is off.
  * Throws readable errors for bad values (shown by Lovelace in place of the card).
  */
-function normalizeForecast(f) {
-  if (f === undefined || f === null || f === false) return null;
-  const o = f === true ? {} : f;
+function normalizeForecast(f, show) {
+  // `show_forecast` (visual editor switch) wins; without it, `forecast: true` / an object turns it on
+  if (show === false) return null;
+  if (show !== true && (f === undefined || f === null || f === false)) return null;
+  const o = f === true || f === undefined || f === null || f === false ? {} : f;
   if (typeof o !== "object" || Array.isArray(o)) throw new Error("forecast must be true, false or an object");
   const type = o.type === undefined ? "daily" : String(o.type);
   if (FORECAST_TYPES.indexOf(type) < 0) throw new Error(`forecast.type: unknown type "${o.type}". Valid: ${FORECAST_TYPES.join(", ")}`);
@@ -1462,7 +1468,7 @@ class DynamicHomeCard extends HTMLElement {
       if (!n) throw new Error(`chips[${i}] is invalid: use "weather", an entity id, or an object with "entity"`);
       return n;
     });
-    const forecast = normalizeForecast(config.forecast);
+    const forecast = normalizeForecast(config.forecast, config.show_forecast);
     const old = this._config;
     this._config = Object.assign({
       show_time: true, show_date: true, show_greeting: true, show_world_name: false,
@@ -1522,7 +1528,17 @@ class DynamicHomeCard extends HTMLElement {
           { name: "show_date", selector: { boolean: {} } },
           { name: "show_greeting", selector: { boolean: {} } },
           { name: "show_world_name", selector: { boolean: {} } },
-          { name: "weather_sky", selector: { boolean: {} } }
+          { name: "weather_sky", selector: { boolean: {} } },
+          { name: "show_forecast", selector: { boolean: {} } }
+        ] },
+        { type: "expandable", name: "forecast", flatten: false, icon: "mdi:weather-partly-snowy-rainy", schema: [
+          { type: "grid", name: "", schema: [
+            { name: "type", selector: { select: { mode: "dropdown", options: ["daily", "hourly"].map((v) => ({ value: v, label: v })) } } },
+            { name: "position", selector: { select: { mode: "dropdown", options: ["right", "below"].map((v) => ({ value: v, label: v })) } } },
+            { name: "count", selector: { number: { min: 1, max: 12, mode: "box" } } },
+            { name: "decimals", selector: { number: { min: 0, max: 2, mode: "box" } } },
+            { name: "range_bar", selector: { boolean: {} } }
+          ] }
         ] }
       ],
       computeLabel: (s) => {
