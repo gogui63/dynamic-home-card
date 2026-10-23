@@ -95,6 +95,7 @@ ha-card.hero.clickable { cursor: pointer; }
 .forecast { display: flex; gap: 2px; padding: 10px 8px; border-radius: 22px; background: color-mix(in srgb, var(--bg) 45%, transparent); border: 1px solid var(--border); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: inset 0 1px 0 var(--hi); }
 .forecast.pos-right { position: absolute; z-index: 3; top: 50%; right: clamp(16px, 2.4vw, 28px); transform: translateY(-50%); max-height: calc(100% - 24px); }
 .forecast.pos-below { margin-top: 12px; align-self: flex-start; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+.hero.fc-right .hero-body { padding-right: calc(var(--dhc-fc-w, 0px) + 2 * clamp(16px, 2.4vw, 28px)); }
 .hero.fc-right .hero-art { right: calc(var(--dhc-fc-w, 0px) + clamp(16px, 2.4vw, 28px));
   -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,.7) 20%, #000 40%, #000 72%, transparent 100%);
   mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,.7) 20%, #000 40%, #000 72%, transparent 100%); }
