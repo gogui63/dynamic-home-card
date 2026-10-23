@@ -4,6 +4,12 @@
 
 Un bandeau d'accueil animé pour les tableaux de bord Home Assistant. Le ciel suit **le vrai soleil**, la scène suit **la vraie météo**, et tout le reste — salutation, date, heure, puces et action de chaque puce — se configure en YAML.
 
+![Dynamic Home Card au crépuscule](docs/preview.png)
+
+| Neige (français) | Pluie, carte étroite |
+|---|---|
+| ![](docs/preview-snow.png) | <img src="docs/preview-mobile.png" width="260"> |
+
 - 10 mondes animés (maison, ville, montagne, phare, forêt magique, espace, Japon, cyberpunk, Noël, océan)
 - 11 effets (pluie, orage, neige, brouillard, feuilles, pétales, lucioles, étoiles filantes, feux d'artifice, bulles, confettis)
 - **Météo automatique** : pluie quand il pleut, neige quand il neige, ciel gris et nuages épais par temps couvert — à partir de votre entité `weather.*`

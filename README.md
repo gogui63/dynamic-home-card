@@ -4,6 +4,12 @@
 
 An animated home banner for Home Assistant dashboards. The sky follows **the real sun**, the scene follows **the real weather**, and everything around it — greeting, date, clock, chips and what each chip does — is yours to configure in YAML.
 
+![Dynamic Home Card at dusk](docs/preview.png)
+
+| Snow (French) | Rain, narrow card |
+|---|---|
+| ![](docs/preview-snow.png) | <img src="docs/preview-mobile.png" width="260"> |
+
 - 10 animated worlds (house, city, mountain, lighthouse, magic forest, space, Japan, cyberpunk, Christmas, ocean)
 - 11 effects (rain, storm, snow, fog, leaves, petals, fireflies, shooting stars, fireworks, bubbles, confetti)
 - **Automatic weather**: rain when it rains, snow when it snows, grey sky and thick clouds when it is overcast — from your `weather.*` entity
