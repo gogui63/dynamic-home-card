@@ -323,6 +323,11 @@ test("visual editor: forecast switch and expandable options, French labels", () 
   const ha = w.document.createElement("home-assistant"); ha.hass = { locale: { language: "fr" } }; w.document.body.appendChild(ha);
   assert.equal(form.computeLabel({ name: "show_forecast" }), "Afficher les prévisions");
   assert.equal(form.computeLabel({ name: "forecast" }), "Prévisions");
+  const fr = C.getConfigForm().schema.find((x) => x.name === "forecast").schema[0].schema;
+  same(fr[0].selector.select.options.map((o) => o.label), ["Journalières", "Horaires"]);
+  same(fr.map((x) => x.default), ["daily", "right", 5, 0, true], "defaults shown in the editor");
+  const shows = C.getConfigForm().schema[2].schema;
+  same(shows.map((x) => [x.name, x.default]), [["show_time", true], ["show_date", true], ["show_greeting", true], ["show_world_name", false], ["weather_sky", true], ["show_forecast", false]]);
 });
 
 test("show_forecast: false hides it, true shows defaults", async () => {

@@ -145,6 +145,8 @@ class DynamicHomeCard extends HTMLElement {
 
   static getConfigForm() {
     const opt = (o) => Object.keys(o).map((k) => ({ value: k, label: k }));
+    const L = () => I18N[pickLanguage("auto", (document.querySelector("home-assistant") || {}).hass)] || I18N.en;
+    const lopt = (vals) => vals.map((v) => ({ value: v, label: L().editor_options[v] || v }));
     return {
       schema: [
         { name: "weather_entity", selector: { entity: { domain: "weather" } } },
@@ -157,28 +159,24 @@ class DynamicHomeCard extends HTMLElement {
           { name: "name", selector: { text: {} } }
         ] },
         { type: "grid", name: "", schema: [
-          { name: "show_time", selector: { boolean: {} } },
-          { name: "show_date", selector: { boolean: {} } },
-          { name: "show_greeting", selector: { boolean: {} } },
-          { name: "show_world_name", selector: { boolean: {} } },
-          { name: "weather_sky", selector: { boolean: {} } },
-          { name: "show_forecast", selector: { boolean: {} } }
+          { name: "show_time", default: true, selector: { boolean: {} } },
+          { name: "show_date", default: true, selector: { boolean: {} } },
+          { name: "show_greeting", default: true, selector: { boolean: {} } },
+          { name: "show_world_name", default: false, selector: { boolean: {} } },
+          { name: "weather_sky", default: true, selector: { boolean: {} } },
+          { name: "show_forecast", default: false, selector: { boolean: {} } }
         ] },
         { type: "expandable", name: "forecast", flatten: false, icon: "mdi:weather-partly-snowy-rainy", schema: [
           { type: "grid", name: "", schema: [
-            { name: "type", selector: { select: { mode: "dropdown", options: ["daily", "hourly"].map((v) => ({ value: v, label: v })) } } },
-            { name: "position", selector: { select: { mode: "dropdown", options: ["right", "below"].map((v) => ({ value: v, label: v })) } } },
-            { name: "count", selector: { number: { min: 1, max: 12, mode: "box" } } },
-            { name: "decimals", selector: { number: { min: 0, max: 2, mode: "box" } } },
-            { name: "range_bar", selector: { boolean: {} } }
+            { name: "type", default: "daily", selector: { select: { mode: "dropdown", options: lopt(["daily", "hourly"]) } } },
+            { name: "position", default: "right", selector: { select: { mode: "dropdown", options: lopt(["right", "below"]) } } },
+            { name: "count", default: 5, selector: { number: { min: 1, max: 12, mode: "box" } } },
+            { name: "decimals", default: 0, selector: { number: { min: 0, max: 2, mode: "box" } } },
+            { name: "range_bar", default: true, selector: { boolean: {} } }
           ] }
         ] }
       ],
-      computeLabel: (s) => {
-        const lang = (document.querySelector("home-assistant") || {}).hass;
-        const L = I18N[pickLanguage("auto", lang)] || I18N.en;
-        return L.editor[s.name] || s.name;
-      }
+      computeLabel: (s) => L().editor[s.name] || s.name
     };
   }
 
