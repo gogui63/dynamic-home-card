@@ -1,0 +1,15 @@
+{
+  "name": "dynamic-home-card",
+  "version": "0.1.0",
+  "description": "Animated home banner card for Home Assistant: the sky follows the real sun, effects follow the real weather, configurable chips.",
+  "license": "GPL-3.0-or-later",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node scripts/build.mjs && node --test tests/*.test.mjs"
+  },
+  "devDependencies": {
+    "jsdom": "^24.1.0"
+  }
+}
