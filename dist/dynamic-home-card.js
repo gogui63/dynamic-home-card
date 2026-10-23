@@ -1039,9 +1039,8 @@ ha-card.hero.clickable { cursor: pointer; }
 
 /* forecast: same glass as the chips; right of the banner when wide, under the chips when narrow */
 .forecast { display: flex; gap: 2px; padding: 10px 8px; border-radius: 22px; background: color-mix(in srgb, var(--bg) 45%, transparent); border: 1px solid var(--border); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: inset 0 1px 0 var(--hi); }
-.forecast.pos-right { position: absolute; z-index: 3; top: 50%; right: clamp(16px, 2.4vw, 28px); transform: translateY(-50%); max-height: calc(100% - 24px); }
+.forecast.pos-right { position: absolute; z-index: 3; top: clamp(16px, 2.4vw, 28px); right: clamp(16px, 2.4vw, 28px); max-height: calc(100% - 24px); }
 .forecast.pos-below { margin-top: 12px; align-self: flex-start; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
-.hero.fc-right .hero-body { padding-right: calc(var(--dhc-fc-w, 0px) + 2 * clamp(16px, 2.4vw, 28px)); }
 .hero.fc-right .hero-art { right: calc(var(--dhc-fc-w, 0px) + clamp(16px, 2.4vw, 28px));
   -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,.7) 20%, #000 40%, #000 72%, transparent 100%);
   mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,.7) 20%, #000 40%, #000 72%, transparent 100%); }
@@ -1054,7 +1053,10 @@ ha-card.hero.clickable { cursor: pointer; }
 .fc-lo { font-size: .8rem; font-weight: 600; color: var(--dim); font-variant-numeric: tabular-nums; }
 .fc-bar { position: relative; width: 5px; height: 30px; margin: 3px 0; border-radius: 99px; background: color-mix(in srgb, var(--text) 12%, transparent); }
 .fc-bar i { position: absolute; left: 0; right: 0; border-radius: 99px; background: linear-gradient(0deg, var(--b3), var(--a2)); }
-@container dhc (max-width: 900px) { .forecast.pos-right .fc-day:nth-child(n+4) { display: none; } }
+@container dhc (max-width: 900px) {
+  .forecast.pos-right .fc-day:nth-child(n+4) { display: none; }
+  .hero.fc-right .hero-body { padding-right: calc(var(--dhc-fc-w, 0px) + 2 * clamp(16px, 2.4vw, 28px)); } /* chips wrap before the panel */
+}
 
 /* narrow cards (phones, small columns): scene goes under the text, like Aurora's mobile layout */
 @container dhc (max-width: 600px) {
