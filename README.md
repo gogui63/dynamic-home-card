@@ -144,6 +144,8 @@ forecast:
 
 The forecast comes from the `weather_entity` through Home Assistant's live forecast subscription, so it works with any weather integration that provides a forecast (daily and/or hourly, depending on the integration). The forecast is part of the banner: tapping it runs the card's `tap_action`.
 
+> **Sections view tip**: on narrow cards (phones) the forecast goes under the chips and the card needs more height. If you set a fixed `grid_options.rows`, use `rows: auto` on phones (for example two copies of the card with a `screen` visibility condition), otherwise the bottom of the card is cut off.
+
 ## Chips
 
 A chip is `weather`, an entity id, or an object:
