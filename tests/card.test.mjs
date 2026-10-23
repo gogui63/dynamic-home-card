@@ -239,3 +239,73 @@ test("stub config and grid options", () => {
   assert.equal(new C().getGridOptions().columns, 12);
   assert.ok(Array.isArray(C.getConfigForm().schema));
 });
+
+const FC = [
+  { datetime: new Date(2026, 9, 23, 13).toISOString(), condition: "rainy", temperature: 13.5, templow: 10.1 },
+  { datetime: new Date(2026, 9, 24, 13).toISOString(), condition: "rainy", temperature: 12.3, templow: 7 },
+  { datetime: new Date(2026, 9, 25, 13).toISOString(), condition: "rainy", temperature: 15.2, templow: 5.8 },
+  { datetime: new Date(2026, 9, 26, 13).toISOString(), condition: "partlycloudy", temperature: 15.3, templow: 4.1 },
+  { datetime: new Date(2026, 9, 27, 13).toISOString(), condition: "partlycloudy", temperature: 21.1, templow: 8 },
+  { datetime: new Date(2026, 9, 28, 13).toISOString(), condition: "sunny", temperature: 12.3, templow: 6.7 }
+];
+const fcTexts = (card) => qa(card, ".fc-day").map((d) => [d.querySelector(".fc-name").textContent, d.querySelector(".fc-hi").textContent, (d.querySelector(".fc-lo") || {}).textContent].join(" "));
+
+test("forecast: off by default, no subscription", async () => {
+  const { w } = env();
+  const hass = hassFor(STATES);
+  const card = mount(w, { weather_entity: "weather.openweathermap" }, hass);
+  await sleep(5);
+  assert.equal(hass._subs.length, 0);
+  assert.equal(q(card, ".forecast").hidden, true);
+});
+
+test("forecast: subscribes, renders days with max/min and bars, French labels", async () => {
+  const { w, errors } = env();
+  const hass = hassFor(STATES);
+  const now = new Date(2026, 9, 23, 22, 30);
+  const card = mount(w, { weather_entity: "weather.openweathermap", forecast: true }, hass, now);
+  await sleep(5);
+  assert.equal(hass._subs.length, 1);
+  same(hass._subs[0].msg, { type: "weather/subscribe_forecast", forecast_type: "daily", entity_id: "weather.openweathermap" });
+  assert.equal(q(card, ".forecast").hidden, true, "hidden until data arrives");
+  hass._subs[0].cb({ type: "daily", forecast: FC });
+  const days = fcTexts(card);
+  assert.equal(days.length, 5);
+  assert.equal(days[0], "Auj. 14° 10°");
+  assert.match(days[1], /^sam 12° 7°$/);
+  assert.equal(qa(card, ".fc-day")[0].classList.contains("today"), true);
+  assert.equal(qa(card, ".fc-day ha-icon")[3].getAttribute("icon"), "mdi:weather-partly-cloudy");
+  assert.equal(qa(card, ".fc-bar").length, 5);
+  assert.equal(qa(card, ".fc-day")[0].getAttribute("aria-label"), "Auj., max 14°, min 10°");
+  assert.equal(q(card, ".forecast").parentNode, q(card, ".hero-body"), "narrow (jsdom has no layout): under the chips");
+  same(errors, []);
+});
+
+test("forecast: options (count, decimals, no bar, hourly) and unsubscribe", async () => {
+  const { w } = env();
+  const hass = hassFor(STATES, { locale: { language: "en", time_format: "24" } });
+  const now = new Date(2026, 9, 23, 22, 30);
+  const card = mount(w, { weather_entity: "weather.openweathermap", language: "en", forecast: { count: 3, decimals: 1, range_bar: false } }, hass, now);
+  await sleep(5);
+  hass._subs[0].cb({ type: "daily", forecast: FC });
+  same(fcTexts(card), ["Today 13.5° 10.1°", "Sat 12.3° 7.0°", "Sun 15.2° 5.8°"]);
+  assert.equal(qa(card, ".fc-bar").length, 0);
+  card.setConfig({ weather_entity: "weather.openweathermap", language: "en", forecast: { type: "hourly", count: 2 } });
+  await sleep(5);
+  assert.equal(hass._subs.length, 1, "old subscription replaced");
+  assert.equal(hass._subs[0].msg.forecast_type, "hourly");
+  hass._subs[0].cb({ type: "hourly", forecast: [{ datetime: new Date(2026, 9, 23, 23).toISOString(), condition: "cloudy", temperature: 11 }, { datetime: new Date(2026, 9, 24, 0).toISOString(), condition: "cloudy", temperature: 10.6 }] });
+  same(fcTexts(card), ["23:00 11° ", "00:00 11° "]);
+  card.remove();
+  await sleep(5);
+  assert.equal(hass._subs.length, 0, "unsubscribed on disconnect");
+});
+
+test("forecast: falls back to the legacy forecast attribute, rejects bad options", async () => {
+  const { w } = env();
+  const states = Object.assign({}, STATES, { "weather.openweathermap": st("weather.openweathermap", "rainy", { temperature: 11, forecast: FC }) });
+  const hass = hassFor(states, { connection: undefined });
+  const card = mount(w, { weather_entity: "weather.openweathermap", forecast: { count: 2 } }, hass, new Date(2026, 9, 23, 22, 30));
+  assert.equal(fcTexts(card).length, 2);
+  assert.throws(() => card.setConfig({ forecast: { type: "weekly" } }), /forecast.type/);
+});

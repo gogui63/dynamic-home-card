@@ -8,7 +8,8 @@ import { I18N, pickLanguage } from "./i18n.js";
 import { CSS, PROPS, FONT_URL } from "./styles.js";
 import {
   WORLDS, EFFECTS, WEATHER_DEFAULTS, resolveWorld, resolveEffect, weatherScene, modelHour, hoursOf, greetingKey,
-  applyOvercast, normalizeChip, isOnState, isUnavail, checkVisibility, chipValue, CONDITION_ICONS, normIcon
+  applyOvercast, normalizeChip, isOnState, isUnavail, checkVisibility, chipValue, CONDITION_ICONS, normIcon,
+  normalizeForecast, forecastItems, forecastRange, rangeBar
 } from "./logic.js";
 
 const VERSION = "__VERSION__";
@@ -75,6 +76,9 @@ class DynamicHomeCard extends HTMLElement {
     this._connected = false;
     this._tplUnsubs = [];
     this._tplValues = {};
+    this._fcUnsub = null;
+    this._fcList = null;
+    this._fcKey = "";
   }
 
   /* ---------------- Lovelace API ---------------- */
@@ -97,16 +101,18 @@ class DynamicHomeCard extends HTMLElement {
       if (!n) throw new Error(`chips[${i}] is invalid: use "weather", an entity id, or an object with "entity"`);
       return n;
     });
+    const forecast = normalizeForecast(config.forecast);
     const old = this._config;
     this._config = Object.assign({
       show_time: true, show_date: true, show_greeting: true, show_world_name: false,
       theme: "auto", fonts: "google", windows: "auto", weather_sky: true, time_format: "auto", language: "auto",
       sun_entity: "sun.sun"
-    }, config, { _world: world, _effect: effect, _chips: chips });
+    }, config, { _world: world, _effect: effect, _chips: chips, _forecast: forecast });
     if (this._built) {
       this._buildChips();
       this._artKey = ""; this._fxKey = "";
       if (!old || JSON.stringify(old.chips) !== JSON.stringify(config.chips)) this._resubscribeTemplates();
+      this._resubscribeForecast();
       this._update(true);
     }
   }
@@ -116,7 +122,7 @@ class DynamicHomeCard extends HTMLElement {
     this._hass = hass;
     if (!this._config) return;
     if (!this._built) this._build();
-    if (first) this._resubscribeTemplates();
+    if (first) { this._resubscribeTemplates(); this._resubscribeForecast(); }
     let dirty = first;
     for (const id of this._trackedIds()) {
       const s = hass.states[id];
@@ -168,13 +174,14 @@ class DynamicHomeCard extends HTMLElement {
 
   connectedCallback() {
     this._connected = true;
-    if (this._built) { this._startTimer(); this._update(true); this._resubscribeTemplates(); }
+    if (this._built) { this._startTimer(); this._update(true); this._resubscribeTemplates(); this._resubscribeForecast(true); }
   }
   disconnectedCallback() {
     this._connected = false;
     clearInterval(this._timer); this._timer = 0;
     if (this._fx) this._fx.stop();
     this._unsubscribeTemplates();
+    this._unsubscribeForecast();
     if (this._ro) this._ro.disconnect();
     if (this._io) this._io.disconnect();
     this._fxKey = "";
@@ -196,19 +203,21 @@ class DynamicHomeCard extends HTMLElement {
       '<canvas class="fx-hero" aria-hidden="true"></canvas>' +
       '<div class="flash" aria-hidden="true"></div>' +
       '<div class="hero-tag" hidden><ha-icon></ha-icon><span></span></div>' +
-      '<div class="hero-body"><p class="eyebrow"></p><h1 class="greet"></h1><div class="clock" aria-live="off"></div><div class="hero-chips"></div></div>';
+      '<div class="hero-body"><p class="eyebrow"></p><h1 class="greet"></h1><div class="clock" aria-live="off"></div><div class="hero-chips"></div></div>' +
+      '<div class="forecast" role="list" hidden></div>';
     root.appendChild(card);
     const $ = (s) => card.querySelector(s);
     this._els = {
       imgs: card.querySelectorAll(".hero-art img"), win: $(".win-layer"), canvas: $(".fx-hero"),
       tag: $(".hero-tag"), tagIcon: $(".hero-tag ha-icon"), tagText: $(".hero-tag span"),
-      date: $(".eyebrow"), greet: $(".greet"), clock: $(".clock"), chips: $(".hero-chips")
+      date: $(".eyebrow"), greet: $(".greet"), clock: $(".clock"), chips: $(".hero-chips"),
+      body: $(".hero-body"), forecast: $(".forecast")
     };
     this._front = this._els.imgs[0]; this._back = this._els.imgs[1];
     bindActions(card, () => this._config, (a) => this._cardAction(a));
     this._fx = new FX.Fx(this._els.canvas, { k: 1, alpha: 1, onFlash: (a) => this.style.setProperty("--flash", a.toFixed(3)) });
     if (typeof ResizeObserver !== "undefined") {
-      this._ro = new ResizeObserver(() => { if (this._fx && this._fx.kind !== "none") this._fx.resize(); });
+      this._ro = new ResizeObserver(() => { if (this._fx && this._fx.kind !== "none") this._fx.resize(); this._placeForecast(); });
       this._ro.observe(card);
     }
     if (typeof IntersectionObserver !== "undefined") {
@@ -356,6 +365,88 @@ class DynamicHomeCard extends HTMLElement {
     });
   }
 
+  /* ---------------- forecast, via HA's weather/subscribe_forecast subscription ---------------- */
+  _unsubscribeForecast() {
+    const p = this._fcUnsub;
+    this._fcUnsub = null;
+    if (p) Promise.resolve(p).then((u) => { try { if (typeof u === "function") u(); } catch (e) { /* ignore */ } }).catch(() => {});
+  }
+  _resubscribeForecast(force) {
+    const c = this._config, hass = this._hass, f = c && c._forecast;
+    const key = f && c.weather_entity ? c.weather_entity + "|" + f.type : "";
+    if (!force && key === this._fcKey && (this._fcUnsub || !key)) return;
+    this._unsubscribeForecast();
+    this._fcKey = key;
+    this._fcList = null;
+    if (!key || !hass || !hass.connection || !this._connected && this.isConnected === false) { this._renderForecast(); return; }
+    const p = hass.connection.subscribeMessage((msg) => {
+      const list = msg && (msg.forecast || (msg.event && msg.event.forecast));
+      this._fcList = Array.isArray(list) ? list : [];
+      this._renderForecast();
+    }, { type: "weather/subscribe_forecast", forecast_type: f.type, entity_id: c.weather_entity });
+    if (p && p.catch) p.catch((e) => { console.warn("dynamic-home-card: forecast unavailable", e && e.message); this._fcList = []; this._renderForecast(); });
+    this._fcUnsub = p;
+  }
+
+  _fmtTemp(v) {
+    const f = this._config._forecast;
+    return Number(v).toLocaleString(this._locale(), { minimumFractionDigits: f.decimals, maximumFractionDigits: f.decimals }) + "°";
+  }
+
+  _renderForecast() {
+    if (!this._built) return;
+    const box = this._els.forecast, c = this._config, f = c._forecast;
+    const ws = this._hass && c.weather_entity ? this._hass.states[c.weather_entity] : undefined;
+    // older integrations still expose the forecast as an attribute
+    const list = this._fcList || (ws && Array.isArray(ws.attributes.forecast) ? ws.attributes.forecast : null);
+    const items = f ? forecastItems(list, f, this._now()) : [];
+    const t = this._t(), lang = this._locale();
+    const rkey = JSON.stringify([items, f, lang, this._timeFormat()]);
+    if (rkey === this._fcRender) { this._placeForecast(); return; }
+    this._fcRender = rkey;
+    this._card.classList.toggle("has-fc", items.length > 0);
+    box.hidden = !items.length;
+    box.textContent = "";
+    if (!items.length) { this._placeForecast(); return; }
+    const range = f.range_bar ? forecastRange(items) : null;
+    box.setAttribute("aria-label", t.forecast);
+    items.forEach((x) => {
+      const day = el("div", "fc-day" + (x.today ? " today" : ""));
+      day.setAttribute("role", "listitem");
+      const name = el("span", "fc-name");
+      if (f.type === "hourly") name.textContent = new Intl.DateTimeFormat(lang, { hour: "2-digit", minute: "2-digit", hourCycle: this._timeFormat() === "12" ? "h12" : "h23" }).format(x.date);
+      else name.textContent = x.today ? t.today : new Intl.DateTimeFormat(lang, { weekday: "short" }).format(x.date).replace(/\.$/, "");
+      const ic = el("ha-icon");
+      ic.setAttribute("icon", CONDITION_ICONS[x.condition] || "mdi:weather-partly-cloudy");
+      const hi = el("span", "fc-hi"); hi.textContent = x.hi === null ? "—" : this._fmtTemp(x.hi);
+      day.append(name, ic, hi);
+      const bar = range ? rangeBar(x, range) : null;
+      if (bar) {
+        const track = el("span", "fc-bar"); track.setAttribute("aria-hidden", "true");
+        const fill = el("i");
+        fill.style.bottom = bar.from + "%"; fill.style.top = (100 - bar.to) + "%";
+        track.appendChild(fill); day.appendChild(track);
+      }
+      if (x.lo !== null) { const lo = el("span", "fc-lo"); lo.textContent = this._fmtTemp(x.lo); day.appendChild(lo); }
+      day.setAttribute("aria-label", [name.textContent, x.hi !== null ? t.max + " " + this._fmtTemp(x.hi) : "", x.lo !== null ? t.min + " " + this._fmtTemp(x.lo) : ""].filter(Boolean).join(", "));
+      box.appendChild(day);
+    });
+    this._placeForecast();
+  }
+
+  /* right of the banner when there is room, otherwise in the text column under the chips */
+  _placeForecast() {
+    if (!this._built) return;
+    const box = this._els.forecast, f = this._config && this._config._forecast;
+    const right = !!f && f.position === "right" && !box.hidden && this._card.clientWidth >= 600;
+    const parent = right ? this._card : this._els.body;
+    if (box.parentNode !== parent) parent.appendChild(box);
+    box.classList.toggle("pos-right", right);
+    box.classList.toggle("pos-below", !right);
+    this._card.classList.toggle("fc-right", right);
+    if (right) this.style.setProperty("--dhc-fc-w", box.offsetWidth + "px"); else this.style.removeProperty("--dhc-fc-w");
+  }
+
   /* ---------------- card action ---------------- */
   _cardAction(action) {
     const c = this._config;
@@ -424,9 +515,11 @@ class DynamicHomeCard extends HTMLElement {
     this._renderWindows(K);
     this._renderFx(effect, intensity);
     this._renderChips();
+    this._renderForecast();
   }
 
-  _renderClock(now) {
+  /* "12" or "24": card option, then the HA user profile, then the locale */
+  _timeFormat() {
     const c = this._config, hass = this._hass;
     let fmt = String(c.time_format || "auto");
     if (fmt === "auto") {
@@ -437,6 +530,11 @@ class DynamicHomeCard extends HTMLElement {
         try { fmt = new Intl.DateTimeFormat(this._locale(), { hour: "numeric" }).resolvedOptions().hour12 ? "12" : "24"; } catch (e) { fmt = "24"; }
       }
     }
+    return fmt;
+  }
+
+  _renderClock(now) {
+    const fmt = this._timeFormat();
     let hh = now.getHours(); const mm = now.getMinutes();
     let suffix = "";
     if (fmt === "12") { suffix = hh < 12 ? "AM" : "PM"; hh = hh % 12 || 12; }

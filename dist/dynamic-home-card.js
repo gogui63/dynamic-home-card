@@ -1,4 +1,4 @@
-/*! Dynamic Home Card v0.1.0 — https://github.com/gogui63/dynamic-home-card
+/*! Dynamic Home Card v0.2.0 — https://github.com/gogui63/dynamic-home-card
  *  License: GPL-3.0-or-later. Contains code derived from Aurora Glass v3
  *  © 2026 DomotikPro.it (Luca Pinelli), GPL-3.0 — https://github.com/lucalux00/aurora-glass-v3
  *  Generated file: edit src/ and run `npm run build`. */
@@ -907,6 +907,7 @@ const I18N = {
     greetings: { night: "Good night", morning: "Good morning", afternoon: "Good afternoon", evening: "Good evening" },
     outside: "Outside",
     unavailable: "Unavailable",
+    forecast: "Forecast", today: "Today", max: "max", min: "min",
     worlds: {
       house: "House", city: "City", mountain: "Mountain", lighthouse: "Sea & lighthouse", magic_forest: "Magic forest",
       space: "Space", japan: "Japan", cyberpunk: "Cyberpunk", christmas: "Christmas", ocean: "Ocean"
@@ -922,6 +923,7 @@ const I18N = {
     greetings: { night: "Bonne nuit", morning: "Bonjour", afternoon: "Bon après-midi", evening: "Bonsoir" },
     outside: "Extérieur",
     unavailable: "Indisponible",
+    forecast: "Prévisions", today: "Auj.", max: "max", min: "min",
     worlds: {
       house: "Maison", city: "Ville", mountain: "Montagne", lighthouse: "Mer et phare", magic_forest: "Forêt magique",
       space: "Espace", japan: "Japon", cyberpunk: "Cyberpunk", christmas: "Noël", ocean: "Océan"
@@ -1034,6 +1036,22 @@ ha-card.hero.clickable { cursor: pointer; }
 .chip .lbl { white-space: nowrap; }
 .chip b { color: var(--text); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .chip.na b { opacity: .5; }
+
+/* forecast: same glass as the chips; right of the banner when wide, under the chips when narrow */
+.forecast { display: flex; gap: 2px; padding: 10px 8px; border-radius: 22px; background: color-mix(in srgb, var(--bg) 45%, transparent); border: 1px solid var(--border); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: inset 0 1px 0 var(--hi); }
+.forecast.pos-right { position: absolute; z-index: 3; top: 50%; right: clamp(16px, 2.4vw, 28px); transform: translateY(-50%); max-height: calc(100% - 24px); }
+.forecast.pos-below { margin-top: 12px; align-self: flex-start; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+.hero.fc-right .hero-art { right: calc(var(--dhc-fc-w, 0px) + clamp(16px, 2.4vw, 28px)); }
+.fc-day { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 50px; padding: 2px 6px; border-radius: 14px; }
+.fc-day.today { background: color-mix(in srgb, var(--acc-text) 14%, transparent); }
+.fc-name { font-size: .66rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--faint); white-space: nowrap; }
+.fc-day.today .fc-name { color: var(--acc-text); }
+.fc-day ha-icon { --mdc-icon-size: 24px; color: var(--acc-text); margin: 4px 0 2px; }
+.fc-hi { font-family: var(--font-display); font-weight: 700; font-size: .95rem; color: var(--text); font-variant-numeric: tabular-nums; }
+.fc-lo { font-size: .8rem; font-weight: 600; color: var(--dim); font-variant-numeric: tabular-nums; }
+.fc-bar { position: relative; width: 5px; height: 30px; margin: 3px 0; border-radius: 99px; background: color-mix(in srgb, var(--text) 12%, transparent); }
+.fc-bar i { position: absolute; left: 0; right: 0; border-radius: 99px; background: linear-gradient(0deg, var(--b3), var(--a2)); }
+@container dhc (max-width: 900px) { .forecast.pos-right .fc-day:nth-child(n+4) { display: none; } }
 
 /* narrow cards (phones, small columns): scene goes under the text, like Aurora's mobile layout */
 @container dhc (max-width: 600px) {
@@ -1262,6 +1280,77 @@ const CONDITION_ICONS = {
   "snowy-rainy": "mdi:weather-snowy-rainy", sunny: "mdi:weather-sunny", windy: "mdi:weather-windy", "windy-variant": "mdi:weather-windy-variant"
 };
 
+/* ------------------------------------------------------------------ forecast */
+const FORECAST_TYPES = ["daily", "hourly"];
+const FORECAST_POSITIONS = ["right", "below"];
+
+/**
+ * `forecast: true` or an object -> normalised options, or null when the forecast is off.
+ * Throws readable errors for bad values (shown by Lovelace in place of the card).
+ */
+function normalizeForecast(f) {
+  if (f === undefined || f === null || f === false) return null;
+  const o = f === true ? {} : f;
+  if (typeof o !== "object" || Array.isArray(o)) throw new Error("forecast must be true, false or an object");
+  const type = o.type === undefined ? "daily" : String(o.type);
+  if (FORECAST_TYPES.indexOf(type) < 0) throw new Error(`forecast.type: unknown type "${o.type}". Valid: ${FORECAST_TYPES.join(", ")}`);
+  const position = o.position === undefined ? "right" : String(o.position);
+  if (FORECAST_POSITIONS.indexOf(position) < 0) throw new Error(`forecast.position: unknown position "${o.position}". Valid: ${FORECAST_POSITIONS.join(", ")}`);
+  const count = o.count === undefined ? 5 : parseInt(o.count, 10);
+  if (!(count >= 1 && count <= 12)) throw new Error("forecast.count must be a number between 1 and 12");
+  const decimals = o.decimals === undefined ? 0 : parseInt(o.decimals, 10);
+  if (!(decimals >= 0 && decimals <= 2)) throw new Error("forecast.decimals must be 0, 1 or 2");
+  return { type, position, count, decimals, range_bar: o.range_bar !== false };
+}
+
+const dayKey = (d) => d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+const toNum = (v) => (v === undefined || v === null || v === "" || !isFinite(Number(v)) ? null : Number(v));
+
+/**
+ * Forecast entries from Home Assistant (weather/subscribe_forecast) -> what the card draws.
+ * Past days (daily) and past hours (hourly) are skipped, then the first `count` are kept.
+ * @returns {{date: Date, today: boolean, condition: string|null, hi: number|null, lo: number|null}[]}
+ */
+function forecastItems(list, opts, now) {
+  if (!Array.isArray(list) || !opts) return [];
+  const today = dayKey(now), out = [];
+  for (const f of list) {
+    if (!f || !f.datetime) continue;
+    const d = new Date(f.datetime);
+    if (isNaN(d)) continue;
+    if (opts.type === "daily" && dayKey(d) < today) continue;
+    if (opts.type === "hourly" && d.getTime() < now.getTime() - 3600000) continue;
+    out.push({
+      date: d,
+      today: opts.type === "daily" && dayKey(d) === today,
+      condition: f.condition || null,
+      hi: toNum(f.temperature),
+      lo: opts.type === "daily" ? toNum(f.templow) : null
+    });
+    if (out.length >= opts.count) break;
+  }
+  return out;
+}
+
+/** Lowest and highest temperature over the shown entries (for the min/max bars), or null. */
+function forecastRange(items) {
+  let min = Infinity, max = -Infinity;
+  items.forEach((x) => [x.lo, x.hi].forEach((v) => { if (v !== null) { min = Math.min(min, v); max = Math.max(max, v); } }));
+  return min === Infinity ? null : { min, max };
+}
+
+/** Position of the min..max bar of one day inside the global range, in % from the bottom. */
+function rangeBar(item, range) {
+  if (!range || item.lo === null || item.hi === null) return null;
+  const span = range.max - range.min;
+  if (span <= 0) return { from: 0, to: 100 };
+  const a = clamp((item.lo - range.min) / span * 100, 0, 100);
+  const b = clamp((item.hi - range.min) / span * 100, 0, 100);
+  let from = Math.min(a, b), to = Math.max(a, b);
+  if (to - from < 6) { to = Math.min(100, from + 6); from = to - 6; } // always visible
+  return { from: Math.round(from), to: Math.round(to) };
+}
+
 function normIcon(i) {
   if (!i) return null;
   const s = String(i);
@@ -1279,7 +1368,7 @@ function normIcon(i) {
 
 
 
-const VERSION = "0.1.0";
+const VERSION = "0.2.0";
 const TAG = "dynamic-home-card";
 const { AR, AMB, FX } = ENGINE;
 const HOLD_MS = 500, DOUBLE_TAP_MS = 250;
@@ -1343,6 +1432,9 @@ class DynamicHomeCard extends HTMLElement {
     this._connected = false;
     this._tplUnsubs = [];
     this._tplValues = {};
+    this._fcUnsub = null;
+    this._fcList = null;
+    this._fcKey = "";
   }
 
   /* ---------------- Lovelace API ---------------- */
@@ -1365,16 +1457,18 @@ class DynamicHomeCard extends HTMLElement {
       if (!n) throw new Error(`chips[${i}] is invalid: use "weather", an entity id, or an object with "entity"`);
       return n;
     });
+    const forecast = normalizeForecast(config.forecast);
     const old = this._config;
     this._config = Object.assign({
       show_time: true, show_date: true, show_greeting: true, show_world_name: false,
       theme: "auto", fonts: "google", windows: "auto", weather_sky: true, time_format: "auto", language: "auto",
       sun_entity: "sun.sun"
-    }, config, { _world: world, _effect: effect, _chips: chips });
+    }, config, { _world: world, _effect: effect, _chips: chips, _forecast: forecast });
     if (this._built) {
       this._buildChips();
       this._artKey = ""; this._fxKey = "";
       if (!old || JSON.stringify(old.chips) !== JSON.stringify(config.chips)) this._resubscribeTemplates();
+      this._resubscribeForecast();
       this._update(true);
     }
   }
@@ -1384,7 +1478,7 @@ class DynamicHomeCard extends HTMLElement {
     this._hass = hass;
     if (!this._config) return;
     if (!this._built) this._build();
-    if (first) this._resubscribeTemplates();
+    if (first) { this._resubscribeTemplates(); this._resubscribeForecast(); }
     let dirty = first;
     for (const id of this._trackedIds()) {
       const s = hass.states[id];
@@ -1436,13 +1530,14 @@ class DynamicHomeCard extends HTMLElement {
 
   connectedCallback() {
     this._connected = true;
-    if (this._built) { this._startTimer(); this._update(true); this._resubscribeTemplates(); }
+    if (this._built) { this._startTimer(); this._update(true); this._resubscribeTemplates(); this._resubscribeForecast(true); }
   }
   disconnectedCallback() {
     this._connected = false;
     clearInterval(this._timer); this._timer = 0;
     if (this._fx) this._fx.stop();
     this._unsubscribeTemplates();
+    this._unsubscribeForecast();
     if (this._ro) this._ro.disconnect();
     if (this._io) this._io.disconnect();
     this._fxKey = "";
@@ -1464,19 +1559,21 @@ class DynamicHomeCard extends HTMLElement {
       '<canvas class="fx-hero" aria-hidden="true"></canvas>' +
       '<div class="flash" aria-hidden="true"></div>' +
       '<div class="hero-tag" hidden><ha-icon></ha-icon><span></span></div>' +
-      '<div class="hero-body"><p class="eyebrow"></p><h1 class="greet"></h1><div class="clock" aria-live="off"></div><div class="hero-chips"></div></div>';
+      '<div class="hero-body"><p class="eyebrow"></p><h1 class="greet"></h1><div class="clock" aria-live="off"></div><div class="hero-chips"></div></div>' +
+      '<div class="forecast" role="list" hidden></div>';
     root.appendChild(card);
     const $ = (s) => card.querySelector(s);
     this._els = {
       imgs: card.querySelectorAll(".hero-art img"), win: $(".win-layer"), canvas: $(".fx-hero"),
       tag: $(".hero-tag"), tagIcon: $(".hero-tag ha-icon"), tagText: $(".hero-tag span"),
-      date: $(".eyebrow"), greet: $(".greet"), clock: $(".clock"), chips: $(".hero-chips")
+      date: $(".eyebrow"), greet: $(".greet"), clock: $(".clock"), chips: $(".hero-chips"),
+      body: $(".hero-body"), forecast: $(".forecast")
     };
     this._front = this._els.imgs[0]; this._back = this._els.imgs[1];
     bindActions(card, () => this._config, (a) => this._cardAction(a));
     this._fx = new FX.Fx(this._els.canvas, { k: 1, alpha: 1, onFlash: (a) => this.style.setProperty("--flash", a.toFixed(3)) });
     if (typeof ResizeObserver !== "undefined") {
-      this._ro = new ResizeObserver(() => { if (this._fx && this._fx.kind !== "none") this._fx.resize(); });
+      this._ro = new ResizeObserver(() => { if (this._fx && this._fx.kind !== "none") this._fx.resize(); this._placeForecast(); });
       this._ro.observe(card);
     }
     if (typeof IntersectionObserver !== "undefined") {
@@ -1624,6 +1721,88 @@ class DynamicHomeCard extends HTMLElement {
     });
   }
 
+  /* ---------------- forecast, via HA's weather/subscribe_forecast subscription ---------------- */
+  _unsubscribeForecast() {
+    const p = this._fcUnsub;
+    this._fcUnsub = null;
+    if (p) Promise.resolve(p).then((u) => { try { if (typeof u === "function") u(); } catch (e) { /* ignore */ } }).catch(() => {});
+  }
+  _resubscribeForecast(force) {
+    const c = this._config, hass = this._hass, f = c && c._forecast;
+    const key = f && c.weather_entity ? c.weather_entity + "|" + f.type : "";
+    if (!force && key === this._fcKey && (this._fcUnsub || !key)) return;
+    this._unsubscribeForecast();
+    this._fcKey = key;
+    this._fcList = null;
+    if (!key || !hass || !hass.connection || !this._connected && this.isConnected === false) { this._renderForecast(); return; }
+    const p = hass.connection.subscribeMessage((msg) => {
+      const list = msg && (msg.forecast || (msg.event && msg.event.forecast));
+      this._fcList = Array.isArray(list) ? list : [];
+      this._renderForecast();
+    }, { type: "weather/subscribe_forecast", forecast_type: f.type, entity_id: c.weather_entity });
+    if (p && p.catch) p.catch((e) => { console.warn("dynamic-home-card: forecast unavailable", e && e.message); this._fcList = []; this._renderForecast(); });
+    this._fcUnsub = p;
+  }
+
+  _fmtTemp(v) {
+    const f = this._config._forecast;
+    return Number(v).toLocaleString(this._locale(), { minimumFractionDigits: f.decimals, maximumFractionDigits: f.decimals }) + "°";
+  }
+
+  _renderForecast() {
+    if (!this._built) return;
+    const box = this._els.forecast, c = this._config, f = c._forecast;
+    const ws = this._hass && c.weather_entity ? this._hass.states[c.weather_entity] : undefined;
+    // older integrations still expose the forecast as an attribute
+    const list = this._fcList || (ws && Array.isArray(ws.attributes.forecast) ? ws.attributes.forecast : null);
+    const items = f ? forecastItems(list, f, this._now()) : [];
+    const t = this._t(), lang = this._locale();
+    const rkey = JSON.stringify([items, f, lang, this._timeFormat()]);
+    if (rkey === this._fcRender) { this._placeForecast(); return; }
+    this._fcRender = rkey;
+    this._card.classList.toggle("has-fc", items.length > 0);
+    box.hidden = !items.length;
+    box.textContent = "";
+    if (!items.length) { this._placeForecast(); return; }
+    const range = f.range_bar ? forecastRange(items) : null;
+    box.setAttribute("aria-label", t.forecast);
+    items.forEach((x) => {
+      const day = el("div", "fc-day" + (x.today ? " today" : ""));
+      day.setAttribute("role", "listitem");
+      const name = el("span", "fc-name");
+      if (f.type === "hourly") name.textContent = new Intl.DateTimeFormat(lang, { hour: "2-digit", minute: "2-digit", hourCycle: this._timeFormat() === "12" ? "h12" : "h23" }).format(x.date);
+      else name.textContent = x.today ? t.today : new Intl.DateTimeFormat(lang, { weekday: "short" }).format(x.date).replace(/\.$/, "");
+      const ic = el("ha-icon");
+      ic.setAttribute("icon", CONDITION_ICONS[x.condition] || "mdi:weather-partly-cloudy");
+      const hi = el("span", "fc-hi"); hi.textContent = x.hi === null ? "—" : this._fmtTemp(x.hi);
+      day.append(name, ic, hi);
+      const bar = range ? rangeBar(x, range) : null;
+      if (bar) {
+        const track = el("span", "fc-bar"); track.setAttribute("aria-hidden", "true");
+        const fill = el("i");
+        fill.style.bottom = bar.from + "%"; fill.style.top = (100 - bar.to) + "%";
+        track.appendChild(fill); day.appendChild(track);
+      }
+      if (x.lo !== null) { const lo = el("span", "fc-lo"); lo.textContent = this._fmtTemp(x.lo); day.appendChild(lo); }
+      day.setAttribute("aria-label", [name.textContent, x.hi !== null ? t.max + " " + this._fmtTemp(x.hi) : "", x.lo !== null ? t.min + " " + this._fmtTemp(x.lo) : ""].filter(Boolean).join(", "));
+      box.appendChild(day);
+    });
+    this._placeForecast();
+  }
+
+  /* right of the banner when there is room, otherwise in the text column under the chips */
+  _placeForecast() {
+    if (!this._built) return;
+    const box = this._els.forecast, f = this._config && this._config._forecast;
+    const right = !!f && f.position === "right" && !box.hidden && this._card.clientWidth >= 600;
+    const parent = right ? this._card : this._els.body;
+    if (box.parentNode !== parent) parent.appendChild(box);
+    box.classList.toggle("pos-right", right);
+    box.classList.toggle("pos-below", !right);
+    this._card.classList.toggle("fc-right", right);
+    if (right) this.style.setProperty("--dhc-fc-w", box.offsetWidth + "px"); else this.style.removeProperty("--dhc-fc-w");
+  }
+
   /* ---------------- card action ---------------- */
   _cardAction(action) {
     const c = this._config;
@@ -1692,9 +1871,11 @@ class DynamicHomeCard extends HTMLElement {
     this._renderWindows(K);
     this._renderFx(effect, intensity);
     this._renderChips();
+    this._renderForecast();
   }
 
-  _renderClock(now) {
+  /* "12" or "24": card option, then the HA user profile, then the locale */
+  _timeFormat() {
     const c = this._config, hass = this._hass;
     let fmt = String(c.time_format || "auto");
     if (fmt === "auto") {
@@ -1705,6 +1886,11 @@ class DynamicHomeCard extends HTMLElement {
         try { fmt = new Intl.DateTimeFormat(this._locale(), { hour: "numeric" }).resolvedOptions().hour12 ? "12" : "24"; } catch (e) { fmt = "24"; }
       }
     }
+    return fmt;
+  }
+
+  _renderClock(now) {
+    const fmt = this._timeFormat();
     let hh = now.getHours(); const mm = now.getMinutes();
     let suffix = "";
     if (fmt === "12") { suffix = hh < 12 ? "AM" : "PM"; hh = hh % 12 || 12; }

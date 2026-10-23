@@ -7,6 +7,7 @@ export const I18N = {
     greetings: { night: "Good night", morning: "Good morning", afternoon: "Good afternoon", evening: "Good evening" },
     outside: "Outside",
     unavailable: "Unavailable",
+    forecast: "Forecast", today: "Today", max: "max", min: "min",
     worlds: {
       house: "House", city: "City", mountain: "Mountain", lighthouse: "Sea & lighthouse", magic_forest: "Magic forest",
       space: "Space", japan: "Japan", cyberpunk: "Cyberpunk", christmas: "Christmas", ocean: "Ocean"
@@ -22,6 +23,7 @@ export const I18N = {
     greetings: { night: "Bonne nuit", morning: "Bonjour", afternoon: "Bon après-midi", evening: "Bonsoir" },
     outside: "Extérieur",
     unavailable: "Indisponible",
+    forecast: "Prévisions", today: "Auj.", max: "max", min: "min",
     worlds: {
       house: "Maison", city: "Ville", mountain: "Montagne", lighthouse: "Mer et phare", magic_forest: "Forêt magique",
       space: "Espace", japan: "Japon", cyberpunk: "Cyberpunk", christmas: "Noël", ocean: "Océan"

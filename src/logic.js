@@ -211,6 +211,77 @@ export const CONDITION_ICONS = {
   "snowy-rainy": "mdi:weather-snowy-rainy", sunny: "mdi:weather-sunny", windy: "mdi:weather-windy", "windy-variant": "mdi:weather-windy-variant"
 };
 
+/* ------------------------------------------------------------------ forecast */
+export const FORECAST_TYPES = ["daily", "hourly"];
+export const FORECAST_POSITIONS = ["right", "below"];
+
+/**
+ * `forecast: true` or an object -> normalised options, or null when the forecast is off.
+ * Throws readable errors for bad values (shown by Lovelace in place of the card).
+ */
+export function normalizeForecast(f) {
+  if (f === undefined || f === null || f === false) return null;
+  const o = f === true ? {} : f;
+  if (typeof o !== "object" || Array.isArray(o)) throw new Error("forecast must be true, false or an object");
+  const type = o.type === undefined ? "daily" : String(o.type);
+  if (FORECAST_TYPES.indexOf(type) < 0) throw new Error(`forecast.type: unknown type "${o.type}". Valid: ${FORECAST_TYPES.join(", ")}`);
+  const position = o.position === undefined ? "right" : String(o.position);
+  if (FORECAST_POSITIONS.indexOf(position) < 0) throw new Error(`forecast.position: unknown position "${o.position}". Valid: ${FORECAST_POSITIONS.join(", ")}`);
+  const count = o.count === undefined ? 5 : parseInt(o.count, 10);
+  if (!(count >= 1 && count <= 12)) throw new Error("forecast.count must be a number between 1 and 12");
+  const decimals = o.decimals === undefined ? 0 : parseInt(o.decimals, 10);
+  if (!(decimals >= 0 && decimals <= 2)) throw new Error("forecast.decimals must be 0, 1 or 2");
+  return { type, position, count, decimals, range_bar: o.range_bar !== false };
+}
+
+const dayKey = (d) => d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+const toNum = (v) => (v === undefined || v === null || v === "" || !isFinite(Number(v)) ? null : Number(v));
+
+/**
+ * Forecast entries from Home Assistant (weather/subscribe_forecast) -> what the card draws.
+ * Past days (daily) and past hours (hourly) are skipped, then the first `count` are kept.
+ * @returns {{date: Date, today: boolean, condition: string|null, hi: number|null, lo: number|null}[]}
+ */
+export function forecastItems(list, opts, now) {
+  if (!Array.isArray(list) || !opts) return [];
+  const today = dayKey(now), out = [];
+  for (const f of list) {
+    if (!f || !f.datetime) continue;
+    const d = new Date(f.datetime);
+    if (isNaN(d)) continue;
+    if (opts.type === "daily" && dayKey(d) < today) continue;
+    if (opts.type === "hourly" && d.getTime() < now.getTime() - 3600000) continue;
+    out.push({
+      date: d,
+      today: opts.type === "daily" && dayKey(d) === today,
+      condition: f.condition || null,
+      hi: toNum(f.temperature),
+      lo: opts.type === "daily" ? toNum(f.templow) : null
+    });
+    if (out.length >= opts.count) break;
+  }
+  return out;
+}
+
+/** Lowest and highest temperature over the shown entries (for the min/max bars), or null. */
+export function forecastRange(items) {
+  let min = Infinity, max = -Infinity;
+  items.forEach((x) => [x.lo, x.hi].forEach((v) => { if (v !== null) { min = Math.min(min, v); max = Math.max(max, v); } }));
+  return min === Infinity ? null : { min, max };
+}
+
+/** Position of the min..max bar of one day inside the global range, in % from the bottom. */
+export function rangeBar(item, range) {
+  if (!range || item.lo === null || item.hi === null) return null;
+  const span = range.max - range.min;
+  if (span <= 0) return { from: 0, to: 100 };
+  const a = clamp((item.lo - range.min) / span * 100, 0, 100);
+  const b = clamp((item.hi - range.min) / span * 100, 0, 100);
+  let from = Math.min(a, b), to = Math.max(a, b);
+  if (to - from < 6) { to = Math.min(100, from + 6); from = to - 6; } // always visible
+  return { from: Math.round(from), to: Math.round(to) };
+}
+
 export function normIcon(i) {
   if (!i) return null;
   const s = String(i);

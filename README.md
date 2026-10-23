@@ -13,6 +13,7 @@ An animated home banner for Home Assistant dashboards. The sky follows **the rea
 - 10 animated worlds (house, city, mountain, lighthouse, magic forest, space, Japan, cyberpunk, Christmas, ocean)
 - 11 effects (rain, storm, snow, fog, leaves, petals, fireflies, shooting stars, fireworks, bubbles, confetti)
 - **Automatic weather**: rain when it rains, snow when it snows, grey sky and thick clouds when it is overcast — from your `weather.*` entity
+- **Forecast** (optional): the next days with max/min temperatures, in the same glass style
 - **Real daylight**: dawn and dusk colours line up with `sun.sun` sunrise and sunset
 - Chips with any entity, attribute, colour, icon, Jinja template, visibility conditions, and standard Home Assistant `tap_action` / `hold_action` / `double_tap_action`
 - English and French (more languages welcome, see [Translations](#translations))
@@ -89,6 +90,7 @@ tap_action:
 | `fonts` | `google` | `google` loads Manrope/Sora from Google Fonts; `theme` uses your HA theme font (no external request). |
 | `height` | `290px` | Minimum height (number = px, or any CSS length). |
 | `chips` | `[weather]` | See [Chips](#chips). |
+| `forecast` | `false` | `true` or an object to show the forecast, see [Forecast](#forecast). |
 | `tap_action`, `hold_action`, `double_tap_action` | `none` | Standard [Home Assistant actions](https://www.home-assistant.io/dashboards/actions/) for the whole card (chips have their own). |
 | `preview_hour`, `preview_condition` | — | Freeze the hour (e.g. `21.5`) or the weather condition (e.g. `snowy`) to try a look. |
 
@@ -117,6 +119,29 @@ weather_effects:
     intensity: 2
     overcast: 1
 ```
+
+## Forecast
+
+Off by default. `forecast: true` shows the next 5 days with an icon, the max and min temperature and a min/max bar. Or set the details:
+
+```yaml
+forecast:
+  type: daily        # daily | hourly
+  count: 5           # 1 – 12 entries
+  position: right    # right of the banner when there is room | below the chips
+  decimals: 0        # 0 – 2
+  range_bar: true    # min/max bar of each day, scaled to the shown period
+```
+
+| Key | Default | Description |
+|---|---|---|
+| `type` | `daily` | `daily` (max + min) or `hourly` (temperature only). |
+| `count` | `5` | Number of days or hours. Past days/hours are skipped. |
+| `position` | `right` | `right`: inside the banner on the right, the scene moves left to make room (3 days when the card is under 900 px wide). `below`: under the chips. Narrow cards (< 600 px) always use `below`. |
+| `decimals` | `0` | Decimals of the temperatures. |
+| `range_bar` | `true` | Show the min/max bar. |
+
+The forecast comes from the `weather_entity` through Home Assistant's live forecast subscription, so it works with any weather integration that provides a forecast (daily and/or hourly, depending on the integration). The forecast is part of the banner: tapping it runs the card's `tap_action`.
 
 ## Chips
 

@@ -94,3 +94,47 @@ test("overcast greys the sky without mutating the engine palette", () => {
   assert.ok(r.B.sun.vis < B.sun.vis);
   assert.equal(ENGINE.AMB.palette(12).s1, K.s1);
 });
+
+import { normalizeForecast, forecastItems, forecastRange, rangeBar } from "../src/logic.js";
+
+test("forecast options: off by default, shorthand, defaults, validation", () => {
+  assert.equal(normalizeForecast(undefined), null);
+  assert.equal(normalizeForecast(false), null);
+  assert.deepEqual(normalizeForecast(true), { type: "daily", position: "right", count: 5, decimals: 0, range_bar: true });
+  assert.deepEqual(normalizeForecast({ type: "hourly", count: "8", position: "below", decimals: 1, range_bar: false }),
+    { type: "hourly", position: "below", count: 8, decimals: 1, range_bar: false });
+  assert.throws(() => normalizeForecast({ type: "weekly" }), /forecast.type/);
+  assert.throws(() => normalizeForecast({ position: "left" }), /forecast.position/);
+  assert.throws(() => normalizeForecast({ count: 0 }), /forecast.count/);
+  assert.throws(() => normalizeForecast({ decimals: 5 }), /forecast.decimals/);
+  assert.throws(() => normalizeForecast("yes"), /forecast must be/);
+});
+
+test("forecast items: skips the past, keeps count, max/min, today flag", () => {
+  const now = new Date(2026, 9, 23, 22, 30);
+  const day = (d, hi, lo, cond = "rainy") => ({ datetime: new Date(2026, 9, d, 13, 0).toISOString(), temperature: hi, templow: lo, condition: cond });
+  const list = [day(22, 9, 3), day(23, 13.5, 10.1), day(24, 12.3, 7), day(25, 15.2, 5.8), { datetime: "nope" }, day(26, 15.3, 4.1, "partlycloudy")];
+  const items = forecastItems(list, normalizeForecast({ count: 3 }), now);
+  assert.equal(items.length, 3);
+  assert.equal(items[0].today, true);
+  assert.equal(items[0].hi, 13.5);
+  assert.equal(items[0].lo, 10.1);
+  assert.equal(items[2].date.getDate(), 25);
+  assert.deepEqual(forecastItems(null, normalizeForecast(true), now), []);
+  const hourly = forecastItems([{ datetime: new Date(2026, 9, 23, 20).toISOString(), temperature: 12 }, { datetime: new Date(2026, 9, 23, 23).toISOString(), temperature: 11, templow: 3 }], normalizeForecast({ type: "hourly" }), now);
+  assert.equal(hourly.length, 1, "past hours skipped");
+  assert.equal(hourly[0].lo, null, "no min for hourly");
+});
+
+test("forecast min/max bars stay inside the range and are always visible", () => {
+  const items = [{ lo: 4, hi: 14 }, { lo: 10, hi: 20 }, { lo: 12, hi: 12 }, { lo: null, hi: 9 }];
+  const r = forecastRange(items);
+  assert.deepEqual(r, { min: 4, max: 20 });
+  assert.deepEqual(rangeBar(items[0], r), { from: 0, to: 63 });
+  assert.deepEqual(rangeBar(items[1], r), { from: 38, to: 100 });
+  const flat = rangeBar(items[2], r);
+  assert.ok(flat.to - flat.from >= 6 && flat.to <= 100);
+  assert.equal(rangeBar(items[3], r), null);
+  assert.equal(forecastRange([{ lo: null, hi: null }]), null);
+  assert.deepEqual(rangeBar({ lo: 5, hi: 5 }, { min: 5, max: 5 }), { from: 0, to: 100 });
+});

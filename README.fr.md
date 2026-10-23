@@ -13,6 +13,7 @@ Un bandeau d'accueil animé pour les tableaux de bord Home Assistant. Le ciel su
 - 10 mondes animés (maison, ville, montagne, phare, forêt magique, espace, Japon, cyberpunk, Noël, océan)
 - 11 effets (pluie, orage, neige, brouillard, feuilles, pétales, lucioles, étoiles filantes, feux d'artifice, bulles, confettis)
 - **Météo automatique** : pluie quand il pleut, neige quand il neige, ciel gris et nuages épais par temps couvert — à partir de votre entité `weather.*`
+- **Prévisions** (optionnel) : les prochains jours avec températures max/min, dans le même style verre
 - **Lumière réelle** : les couleurs de l'aube et du crépuscule suivent le lever et le coucher de `sun.sun`
 - Puces avec n'importe quelle entité, attribut, couleur, icône, template Jinja, conditions de visibilité, et les actions standard `tap_action` / `hold_action` / `double_tap_action`
 - Français et anglais (d'autres langues bienvenues, voir [Traductions](#traductions))
@@ -84,7 +85,23 @@ Toutes les options, puces et actions sont décrites dans le [README anglais](REA
 | `fonts` | `google` | `theme` pour utiliser la police du thème HA (aucune requête externe). |
 | `windows` | `auto` | Fenêtres éclairées : `auto` (la nuit), `on`, `off`, une entité ou une liste d'entités. |
 | `chips` | `[weather]` | Liste des puces. |
+| `forecast` | `false` | `true` ou un objet pour afficher les prévisions, voir [Prévisions](#prévisions). |
 | `preview_hour`, `preview_condition` | — | Figer l'heure ou la météo pour tester un rendu. |
+
+## Prévisions
+
+Désactivées par défaut. `forecast: true` affiche les 5 prochains jours avec une icône, la température max et min, et une barre min/max. Ou détaillez :
+
+```yaml
+forecast:
+  type: daily        # daily | hourly
+  count: 5           # 1 à 12 entrées
+  position: right    # right : à droite du bandeau quand il y a la place | below : sous les puces
+  decimals: 0        # 0 à 2
+  range_bar: true    # barre min/max de chaque jour, à l'échelle de la période affichée
+```
+
+Les prévisions viennent de `weather_entity` via l'abonnement aux prévisions de Home Assistant (mise à jour en direct, aucun capteur à créer). Sous 900 px de large, la position `right` affiche 3 jours ; sous 600 px, les prévisions passent toujours sous les puces. Un appui sur les prévisions déclenche le `tap_action` de la carte.
 
 ## Traductions
 
