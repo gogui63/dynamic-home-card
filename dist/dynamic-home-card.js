@@ -1,4 +1,4 @@
-/*! Dynamic Home Card v0.2.0 — https://github.com/gogui63/dynamic-home-card
+/*! Dynamic Home Card v0.2.1 — https://github.com/gogui63/dynamic-home-card
  *  License: GPL-3.0-or-later. Contains code derived from Aurora Glass v3
  *  © 2026 DomotikPro.it (Luca Pinelli), GPL-3.0 — https://github.com/lucalux00/aurora-glass-v3
  *  Generated file: edit src/ and run `npm run build`. */
@@ -952,7 +952,8 @@ function pickLanguage(configLang, hass) {
 /* ---- src/styles.js ---- */
 /* Dynamic Home Card — styles.
    Visual design derived from the "hero" of Aurora Glass v3 © 2026 DomotikPro.it (Luca Pinelli), GPL-3.0.
-   Adapted to a standalone Lovelace card: container queries instead of viewport media queries,
+   Adapted to a standalone Lovelace card: container queries and container units (cqi) instead of viewport
+   media queries and viewport units (vw), so the layout follows the card width, not the browser window,
    background blobs scoped to the card, Home Assistant theme fallbacks. */
 const FONT_URL = "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap";
 
@@ -1023,11 +1024,11 @@ ha-card.hero.clickable { cursor: pointer; }
 .wglow { position: absolute; border-radius: 2px; background: var(--win); box-shadow: 0 0 9px 2px var(--win); opacity: 0; transition: opacity .6s ease; pointer-events: none; }
 .wglow.on { opacity: 1; }
 .fx-hero { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
-.hero-body { position: relative; z-index: 2; padding: clamp(22px, 3vw, 36px); display: flex; flex-direction: column; justify-content: center; gap: 4px; min-width: 0; }
+.hero-body { position: relative; z-index: 2; padding: clamp(22px, 4cqi, 36px); display: flex; flex-direction: column; justify-content: center; gap: 4px; min-width: 0; }
 .hero-tag { position: absolute; z-index: 3; right: 16px; top: 14px; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 99px; font-size: .74rem; font-weight: 700; color: #fff; background: rgba(8,10,30,.45); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,.18); }
 .hero-tag ha-icon { --mdc-icon-size: 16px; }
 .eyebrow { margin: 0; font-size: .74rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--faint); }
-.greet { margin: 2px 0 0; font-family: var(--font-display); font-weight: 600; font-size: clamp(1.1rem, 2.2vw, 1.5rem); letter-spacing: -.02em; line-height: 1.25; }
+.greet { margin: 2px 0 0; font-family: var(--font-display); font-weight: 600; font-size: clamp(1.1rem, 3cqi, 1.5rem); letter-spacing: -.02em; line-height: 1.25; }
 .clock { font-family: var(--font-display); font-weight: 800; line-height: 1; letter-spacing: -.05em; font-variant-numeric: tabular-nums; font-size: clamp(3.6rem, 9cqi, 6.6rem); margin: 4px 0 8px; background: linear-gradient(110deg, var(--text) 10%, var(--acc-text) 55%, var(--a2) 100%); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; filter: drop-shadow(0 6px 24px color-mix(in srgb, var(--a1) 35%, transparent)); }
 .clock .colon { animation: blink 1s steps(1) infinite; }
 .clock .ampm { font-size: .32em; letter-spacing: 0; margin-left: .2em; }
@@ -1045,9 +1046,9 @@ ha-card.hero.clickable { cursor: pointer; }
 
 /* forecast: same glass as the chips; right of the banner when wide, under the chips when narrow */
 .forecast { display: flex; gap: 2px; padding: 10px 8px; border-radius: 22px; background: color-mix(in srgb, var(--bg) 45%, transparent); border: 1px solid var(--border); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: inset 0 1px 0 var(--hi); }
-.forecast.pos-right { position: absolute; z-index: 3; top: clamp(16px, 2.4vw, 28px); right: clamp(16px, 2.4vw, 28px); max-height: calc(100% - 24px); }
+.forecast.pos-right { position: absolute; z-index: 3; top: clamp(16px, 2.4cqi, 28px); right: clamp(16px, 2.4cqi, 28px); max-height: calc(100% - 24px); }
 .forecast.pos-below { margin-top: 12px; align-self: stretch; justify-content: space-between; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
-.hero.fc-right .hero-art { right: calc(var(--dhc-fc-w, 0px) + clamp(16px, 2.4vw, 28px));
+.hero.fc-right .hero-art { right: calc(var(--dhc-fc-w, 0px) + clamp(16px, 2.4cqi, 28px));
   -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,.7) 20%, #000 40%, #000 72%, transparent 100%);
   mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,.7) 20%, #000 40%, #000 72%, transparent 100%); }
 .fc-day { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 50px; padding: 2px 6px; border-radius: 14px; }
@@ -1061,14 +1062,14 @@ ha-card.hero.clickable { cursor: pointer; }
 .fc-bar i { position: absolute; left: 0; right: 0; border-radius: 99px; background: linear-gradient(0deg, var(--b3), var(--a2)); }
 @container dhc (max-width: 900px) {
   .forecast.pos-right .fc-day:nth-child(n+4) { display: none; }
-  .hero.fc-right .hero-body { padding-right: calc(var(--dhc-fc-w, 0px) + 2 * clamp(16px, 2.4vw, 28px)); } /* chips wrap before the panel */
+  .hero.fc-right .hero-body { padding-right: calc(var(--dhc-fc-w, 0px) + 2 * clamp(16px, 2.4cqi, 28px)); } /* chips wrap before the panel */
 }
 
 /* narrow cards (phones, small columns): scene goes under the text, like Aurora's mobile layout */
 @container dhc (max-width: 600px) {
-  ha-card.hero { min-height: var(--dhc-height-narrow, 410px); }
   .hero-art { height: auto; width: 100%; -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 42%); mask-image: linear-gradient(180deg, transparent 0%, #000 42%); }
-  .hero-body { padding-bottom: 46cqi; justify-content: flex-start; }
+  /* room for the opaque part of the scene: it is 640/260 wide-to-high (40.6cqi) and its top 42 % fades under the text */
+  .hero-body { padding-bottom: 26cqi; justify-content: flex-start; }
   .hero-tag { top: auto; bottom: 12px; }
   .clock { font-size: clamp(3.2rem, 18cqi, 5rem); }
 }
@@ -1381,7 +1382,7 @@ function normIcon(i) {
 
 
 
-const VERSION = "0.2.0";
+const VERSION = "0.2.1";
 const TAG = "dynamic-home-card";
 const { AR, AMB, FX } = ENGINE;
 const HOLD_MS = 500, DOUBLE_TAP_MS = 250;
@@ -1503,7 +1504,11 @@ class DynamicHomeCard extends HTMLElement {
   get hass() { return this._hass; }
 
   getCardSize() { return 6; }
-  getGridOptions() { return { columns: 12, min_columns: 6, rows: 5, min_rows: 4 }; }
+  /* Sections view: no `rows`, so the card ignores the grid rows and its height follows its content
+     (greeting, clock, wrapped chips, forecast). A fixed default number of rows cut off the last chips
+     on narrow columns. Users can still force a height with `grid_options.rows` in their YAML.
+     https://developers.home-assistant.io/docs/frontend/custom-ui/lovelace-custom-card (Sizing in sections view) */
+  getGridOptions() { return { columns: 12, min_columns: 6 }; }
 
   static getStubConfig(hass) {
     const w = hass && Object.keys(hass.states).find((e) => e.startsWith("weather."));

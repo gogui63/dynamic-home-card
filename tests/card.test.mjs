@@ -236,7 +236,11 @@ test("stub config and grid options", () => {
   const { w } = env();
   const C = w.customElements.get("dynamic-home-card");
   same(C.getStubConfig({ states: STATES }), { world: "house", chips: ["weather"], weather_entity: "weather.openweathermap" });
-  assert.equal(new C().getGridOptions().columns, 12);
+  const g = new C().getGridOptions();
+  assert.equal(g.columns, 12);
+  // no rows: in a sections view the height follows the content instead of a fixed number of grid rows
+  assert.equal(g.rows, undefined);
+  assert.equal(g.min_rows, undefined);
   assert.ok(Array.isArray(C.getConfigForm().schema));
 });
 
@@ -341,4 +345,16 @@ test("show_forecast: false hides it, true shows defaults", async () => {
   assert.equal(hass._subs.length, 1);
   hass._subs[0].cb({ forecast: FC });
   assert.equal(qa(card, ".fc-day").length, 5);
+});
+
+test("layout CSS follows the card, not the browser window", () => {
+  const { w } = env();
+  const card = mount(w, {}, hassFor(STATES));
+  const css = card.shadowRoot.querySelector("style").textContent;
+  // viewport units make a narrow card behave differently on a wide screen (desktop) than on a phone
+  assert.doesNotMatch(css.replace(/\/\*[\s\S]*?\*\//g, ""), /\d(vw|vh|vmin|vmax)\b/);
+  // ha-card.hero is the query container: a rule targeting it inside @container never applies
+  const blocks = css.match(/@container[^{]*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g) || [];
+  assert.ok(blocks.length > 0);
+  blocks.forEach((b) => assert.doesNotMatch(b.replace(/\/\*[\s\S]*?\*\//g, ""), /(^|[\s,{])ha-card\.hero\s*\{/, b.slice(0, 40)));
 });
