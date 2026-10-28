@@ -134,7 +134,11 @@ class DynamicHomeCard extends HTMLElement {
   get hass() { return this._hass; }
 
   getCardSize() { return 6; }
-  getGridOptions() { return { columns: 12, min_columns: 6, rows: 5, min_rows: 4 }; }
+  /* Sections view: no `rows`, so the card ignores the grid rows and its height follows its content
+     (greeting, clock, wrapped chips, forecast). A fixed default number of rows cut off the last chips
+     on narrow columns. Users can still force a height with `grid_options.rows` in their YAML.
+     https://developers.home-assistant.io/docs/frontend/custom-ui/lovelace-custom-card (Sizing in sections view) */
+  getGridOptions() { return { columns: 12, min_columns: 6 }; }
 
   static getStubConfig(hass) {
     const w = hass && Object.keys(hass.states).find((e) => e.startsWith("weather."));

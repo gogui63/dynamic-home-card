@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1 — 2026-10-28
+
+- Sections view: the card no longer asks for a fixed 5 rows (`getGridOptions` has no `rows`/`min_rows`), so its height follows its content. On narrow columns the last row of chips was cut off.
+- Spacing and greeting size use container units (`cqi`) instead of viewport units (`vw`): a narrow card now looks the same on a wide desktop window as on a phone.
+- Narrow layout: the space kept for the scene under the text matches the visible part of the scene. The narrow `min-height` rule, which never applied (the card cannot query its own size), is removed.
+
 ## 0.2.0 — 2026-10-23
 
 - New `forecast` option (off by default): daily or hourly forecast inside the banner, in the same glass style as the chips, with max/min temperatures and a min/max bar per day scaled to the shown period.

@@ -104,7 +104,7 @@ forecast:
 
 Les prévisions viennent de `weather_entity` via l'abonnement aux prévisions de Home Assistant (mise à jour en direct, aucun capteur à créer). Sous 900 px de large, la position `right` affiche 3 jours ; sous 600 px, les prévisions passent toujours sous les puces. Un appui sur les prévisions déclenche le `tap_action` de la carte.
 
-> **Astuce vue Sections** : sur une carte étroite (téléphone), les prévisions passent sous les puces et la carte a besoin de plus de hauteur. Si vous fixez `grid_options.rows`, utilisez `rows: auto` sur téléphone (par exemple deux exemplaires de la carte avec une condition de visibilité `screen`), sinon le bas de la carte est coupé.
+> **Vue Sections** : la carte ne fixe pas de nombre de lignes par défaut, sa hauteur suit donc son contenu (puces sur plusieurs lignes, prévisions sous les puces sur une carte étroite). Si vous imposez une hauteur avec `grid_options.rows`, le contenu qui ne tient pas est coupé.
 
 ## Traductions
 
