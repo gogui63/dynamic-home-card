@@ -89,6 +89,7 @@ tap_action:
 | `windows` | `auto` | House windows: `auto` (lit when dark), `on`, `off`, one entity (all windows), or a list of entities (one per window, in order). |
 | `fonts` | `google` | `google` loads Manrope/Sora from Google Fonts; `theme` uses your HA theme font (no external request). |
 | `height` | `290px` | Minimum height (number = px, or any CSS length). |
+| `layout` | `auto` | Narrow cards (< 600 px): `compact` (the scene sits behind the bottom of the text, shortest card), `full` (room under the chips, the whole scene is visible) or `auto` (compact on phones, full on tablets and computers, using Home Assistant's mobile breakpoint: screen < 768 px). No effect on wide cards, where the scene is on the right. |
 | `chips` | `[weather]` | See [Chips](#chips). |
 | `show_forecast` | — | Visual editor switch for the forecast. `false` hides it even when `forecast` is set. |
 | `forecast` | `false` | `true` or an object to show the forecast, see [Forecast](#forecast). |

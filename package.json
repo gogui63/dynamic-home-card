@@ -1,6 +1,6 @@
 {
   "name": "dynamic-home-card",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Animated home banner card for Home Assistant: the sky follows the real sun, effects follow the real weather, configurable chips.",
   "license": "GPL-3.0-or-later",
   "type": "module",

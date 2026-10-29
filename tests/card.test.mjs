@@ -358,3 +358,52 @@ test("layout CSS follows the card, not the browser window", () => {
   assert.ok(blocks.length > 0);
   blocks.forEach((b) => assert.doesNotMatch(b.replace(/\/\*[\s\S]*?\*\//g, ""), /(^|[\s,{])ha-card\.hero\s*\{/, b.slice(0, 40)));
 });
+
+function fakeMedia(w, matches) {
+  const listeners = new Set();
+  const mq = { matches, media: "", addEventListener: (t, f) => listeners.add(f), removeEventListener: (t, f) => listeners.delete(f) };
+  w.matchMedia = (q) => { mq.media = q; return mq; };
+  return { mq, listeners, set(v) { mq.matches = v; listeners.forEach((f) => f({ matches: v })); } };
+}
+
+test("layout: invalid value gives a readable error", () => {
+  const { w } = env();
+  const card = w.document.createElement("dynamic-home-card");
+  assert.throws(() => card.setConfig({ layout: "tiny" }), /Unknown layout "tiny"/);
+  assert.doesNotThrow(() => card.setConfig({ layout: "full" }));
+});
+
+test("layout: auto follows the mobile breakpoint live, explicit values ignore it", () => {
+  const { w } = env();
+  const media = fakeMedia(w, true);
+  const card = mount(w, {}, hassFor(STATES));
+  assert.equal(media.mq.media, "(max-width: 767px)");
+  assert.equal(card.dataset.layout, "compact");
+  assert.ok(q(card, "ha-card").classList.contains("compact"));
+  media.set(false); // phone rotated / window resized past the breakpoint
+  assert.equal(card.dataset.layout, "full");
+  assert.ok(!q(card, "ha-card").classList.contains("compact"));
+  card.setConfig({ layout: "compact" });
+  assert.equal(card.dataset.layout, "compact");
+  card.setConfig({ layout: "full" });
+  media.set(true);
+  assert.equal(card.dataset.layout, "full");
+});
+
+test("layout: the media listener is removed when the card leaves the page", () => {
+  const { w } = env();
+  const media = fakeMedia(w, false);
+  const card = mount(w, {}, hassFor(STATES));
+  assert.equal(media.listeners.size, 1);
+  card.remove();
+  assert.equal(media.listeners.size, 0);
+  w.document.body.appendChild(card);
+  assert.equal(media.listeners.size, 1);
+});
+
+test("layout: offered in the visual editor", () => {
+  const { w } = env();
+  const C = w.customElements.get("dynamic-home-card");
+  const names = JSON.stringify(C.getConfigForm().schema);
+  assert.match(names, /"name":"layout"/);
+});
