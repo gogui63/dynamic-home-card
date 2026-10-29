@@ -9,7 +9,7 @@ import { CSS, PROPS, FONT_URL } from "./styles.js";
 import {
   WORLDS, EFFECTS, WEATHER_DEFAULTS, resolveWorld, resolveEffect, weatherScene, modelHour, hoursOf, greetingKey,
   applyOvercast, normalizeChip, isOnState, isUnavail, checkVisibility, chipValue, CONDITION_ICONS, normIcon,
-  normalizeForecast, forecastItems, forecastRange, rangeBar
+  normalizeForecast, forecastItems, forecastRange, rangeBar, LAYOUTS, MOBILE_QUERY, resolveLayout
 } from "./logic.js";
 
 const VERSION = "__VERSION__";
@@ -102,10 +102,11 @@ class DynamicHomeCard extends HTMLElement {
       return n;
     });
     const forecast = normalizeForecast(config.forecast, config.show_forecast);
+    if (config.layout !== undefined && LAYOUTS.indexOf(config.layout) < 0) throw new Error(`Unknown layout "${config.layout}". Valid: ${LAYOUTS.join(", ")}`);
     const old = this._config;
     this._config = Object.assign({
       show_time: true, show_date: true, show_greeting: true, show_world_name: false,
-      theme: "auto", fonts: "google", windows: "auto", weather_sky: true, time_format: "auto", language: "auto",
+      theme: "auto", fonts: "google", windows: "auto", weather_sky: true, time_format: "auto", language: "auto", layout: "auto",
       sun_entity: "sun.sun"
     }, config, { _world: world, _effect: effect, _chips: chips, _forecast: forecast });
     if (this._built) {
@@ -160,6 +161,7 @@ class DynamicHomeCard extends HTMLElement {
           { name: "language", selector: { select: { mode: "dropdown", options: [{ value: "auto", label: "auto" }, { value: "fr", label: "Français" }, { value: "en", label: "English" }] } } },
           { name: "theme", selector: { select: { mode: "dropdown", options: ["auto", "dark", "light"].map((v) => ({ value: v, label: v })) } } },
           { name: "time_format", selector: { select: { mode: "dropdown", options: ["auto", "24", "12"].map((v) => ({ value: v, label: v })) } } },
+          { name: "layout", default: "auto", selector: { select: { mode: "dropdown", options: lopt(LAYOUTS) } } },
           { name: "name", selector: { text: {} } }
         ] },
         { type: "grid", name: "", schema: [
@@ -186,7 +188,7 @@ class DynamicHomeCard extends HTMLElement {
 
   connectedCallback() {
     this._connected = true;
-    if (this._built) { this._startTimer(); this._update(true); this._resubscribeTemplates(); this._resubscribeForecast(true); }
+    if (this._built) { this._watchLayout(); this._startTimer(); this._update(true); this._resubscribeTemplates(); this._resubscribeForecast(true); }
   }
   disconnectedCallback() {
     this._connected = false;
@@ -194,6 +196,7 @@ class DynamicHomeCard extends HTMLElement {
     if (this._fx) this._fx.stop();
     this._unsubscribeTemplates();
     this._unsubscribeForecast();
+    this._unwatchLayout();
     if (this._ro) this._ro.disconnect();
     if (this._io) this._io.disconnect();
     this._fxKey = "";
@@ -241,7 +244,32 @@ class DynamicHomeCard extends HTMLElement {
       this._io.observe(card);
     }
     this._buildChips();
+    this._watchLayout();
     this._startTimer();
+  }
+
+  /* ---------------- layout (compact / full), "auto" follows Home Assistant's mobile breakpoint ---------------- */
+  _watchLayout() {
+    this._unwatchLayout();
+    const mq = typeof window !== "undefined" && window.matchMedia ? window.matchMedia(MOBILE_QUERY) : null;
+    if (!mq) return;
+    this._mq = mq;
+    this._mqHandler = () => this._applyLayout();
+    if (mq.addEventListener) mq.addEventListener("change", this._mqHandler);
+    else if (mq.addListener) mq.addListener(this._mqHandler); // Safari < 14
+  }
+  _unwatchLayout() {
+    const mq = this._mq, h = this._mqHandler;
+    this._mq = null; this._mqHandler = null;
+    if (!mq || !h) return;
+    if (mq.removeEventListener) mq.removeEventListener("change", h);
+    else if (mq.removeListener) mq.removeListener(h);
+  }
+  _applyLayout() {
+    if (!this._built || !this._config) return;
+    const layout = resolveLayout(this._config.layout, !!(this._mq && this._mq.matches));
+    this.dataset.layout = layout;
+    this._card.classList.toggle("compact", layout === "compact");
   }
 
   _startTimer() {
@@ -480,6 +508,7 @@ class DynamicHomeCard extends HTMLElement {
     }
     const dark = c.theme === "dark" ? true : c.theme === "light" ? false : !(hass && hass.themes && hass.themes.darkMode === false);
     this.dataset.theme = dark ? "dark" : "light";
+    this._applyLayout();
     if (c.height !== undefined) this.style.setProperty("--dhc-height", typeof c.height === "number" ? c.height + "px" : String(c.height));
     this._card.classList.toggle("clickable", hasAction(c.tap_action) || hasAction(c.hold_action) || hasAction(c.double_tap_action));
 

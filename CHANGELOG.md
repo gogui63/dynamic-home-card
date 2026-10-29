@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0 — 2026-10-29
+
+- New `layout` option for narrow cards (< 600 px wide), also in the visual editor:
+  - `compact`: no room kept for the scene, it sits behind the bottom of the text (shortest card).
+  - `full`: room under the chips, the whole scene is visible (the 0.2.1 behaviour).
+  - `auto` (default): compact on phones, full on tablets and computers. It uses Home Assistant's own mobile breakpoint (screen < 768 px, same as the `screen` visibility condition) and follows it live when the window is resized or the phone rotated.
+- No effect on wide cards, where the scene is on the right of the text.
+
 ## 0.2.1 — 2026-10-28
 
 - Sections view: the card no longer asks for a fixed 5 rows (`getGridOptions` has no `rows`/`min_rows`), so its height follows its content. On narrow columns the last row of chips was cut off.

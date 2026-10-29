@@ -118,6 +118,8 @@ ha-card.hero.clickable { cursor: pointer; }
   .hero-art { height: auto; width: 100%; -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 42%); mask-image: linear-gradient(180deg, transparent 0%, #000 42%); }
   /* room for the opaque part of the scene: it is 640/260 wide-to-high (40.6cqi) and its top 42 % fades under the text */
   .hero-body { padding-bottom: 26cqi; justify-content: flex-start; }
+  /* layout: compact (default on phones): no room kept for the scene, it sits behind the bottom of the text */
+  .hero.compact .hero-body { padding-bottom: clamp(22px, 4cqi, 36px); }
   .hero-tag { top: auto; bottom: 12px; }
   .clock { font-size: clamp(3.2rem, 18cqi, 5rem); }
 }

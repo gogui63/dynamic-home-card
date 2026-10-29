@@ -290,3 +290,19 @@ export function normIcon(i) {
   if (s.indexOf(":") > 0) return s;
   return "mdi:" + s.replace(/^mdi-/, "");
 }
+
+/* ------------------------------------------------------------------ layout of narrow cards */
+export const LAYOUTS = ["auto", "compact", "full"];
+
+/* Same "mobile" breakpoint as Home Assistant's screen condition (frontend: BREAKPOINT_VALUES = [0, 768, 1024, 1280]). */
+export const MOBILE_QUERY = "(max-width: 767px)";
+
+/**
+ * "compact": the scene sits behind the bottom of the text (shortest card).
+ * "full": room is kept under the chips so the whole scene is visible.
+ * "auto": compact on phones (Home Assistant's mobile breakpoint), full on tablets and computers.
+ */
+export function resolveLayout(layout, isMobile) {
+  if (layout === "compact" || layout === "full") return layout;
+  return isMobile ? "compact" : "full";
+}

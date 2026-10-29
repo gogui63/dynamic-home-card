@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { resolveWorld, resolveEffect, weatherScene, modelHour, greetingKey, checkVisibility, chipValue, normalizeChip, applyOvercast, WEATHER_DEFAULTS, WORLDS, EFFECTS } from "../src/logic.js";
+import { resolveWorld, resolveEffect, weatherScene, modelHour, greetingKey, checkVisibility, chipValue, normalizeChip, applyOvercast, WEATHER_DEFAULTS, WORLDS, EFFECTS, resolveLayout, MOBILE_QUERY } from "../src/logic.js";
 import { ENGINE } from "../src/engine/aurora-engine.js";
 
 test("worlds: English ids, Aurora ids, default, unknown", () => {
@@ -144,4 +144,14 @@ test("forecast: show_forecast switch from the visual editor", () => {
   assert.equal(normalizeForecast({ count: 3 }, false), null, "switch off wins over the options");
   assert.equal(normalizeForecast({ count: 3 }, true).count, 3);
   assert.equal(normalizeForecast({ count: 3 }, undefined).count, 3, "YAML without the switch still works");
+});
+
+test("layout: auto is compact on phones, full otherwise; explicit values win", () => {
+  assert.equal(resolveLayout("auto", true), "compact");
+  assert.equal(resolveLayout("auto", false), "full");
+  assert.equal(resolveLayout(undefined, true), "compact");
+  assert.equal(resolveLayout("compact", false), "compact");
+  assert.equal(resolveLayout("full", true), "full");
+  // same breakpoint as Home Assistant's "mobile" screen condition
+  assert.equal(MOBILE_QUERY, "(max-width: 767px)");
 });

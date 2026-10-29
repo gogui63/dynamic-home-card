@@ -1,4 +1,4 @@
-/*! Dynamic Home Card v0.2.1 — https://github.com/gogui63/dynamic-home-card
+/*! Dynamic Home Card v0.3.0 — https://github.com/gogui63/dynamic-home-card
  *  License: GPL-3.0-or-later. Contains code derived from Aurora Glass v3
  *  © 2026 DomotikPro.it (Luca Pinelli), GPL-3.0 — https://github.com/lucalux00/aurora-glass-v3
  *  Generated file: edit src/ and run `npm run build`. */
@@ -918,9 +918,11 @@ const I18N = {
       show_greeting: "Show greeting", show_world_name: "Show world name", weather_sky: "Sky follows the weather",
       windows: "Window lights", effect_intensity: "Effect intensity",
       show_forecast: "Show forecast", forecast: "Forecast", type: "Forecast type",
-      position: "Position", count: "Days or hours shown", decimals: "Decimals", range_bar: "Min/max bar"
+      position: "Position", count: "Days or hours shown", decimals: "Decimals", range_bar: "Min/max bar",
+      layout: "Layout on narrow cards"
     },
-    editor_options: { daily: "Daily", hourly: "Hourly", right: "Right of the banner", below: "Below the chips" }
+    editor_options: { daily: "Daily", hourly: "Hourly", right: "Right of the banner", below: "Below the chips",
+      auto: "Auto (compact on phones)", compact: "Compact", full: "Full scene" }
   },
   fr: {
     greetings: { night: "Bonne nuit", morning: "Bonjour", afternoon: "Bon après-midi", evening: "Bonsoir" },
@@ -937,9 +939,11 @@ const I18N = {
       show_date: "Afficher la date", show_greeting: "Afficher la salutation", show_world_name: "Afficher le nom du monde",
       weather_sky: "Le ciel suit la météo", windows: "Fenêtres éclairées", effect_intensity: "Intensité de l'effet",
       show_forecast: "Afficher les prévisions", forecast: "Prévisions", type: "Type de prévisions",
-      position: "Position", count: "Nombre de jours ou d'heures", decimals: "Décimales", range_bar: "Barre min/max"
+      position: "Position", count: "Nombre de jours ou d'heures", decimals: "Décimales", range_bar: "Barre min/max",
+      layout: "Mise en page sur carte étroite"
     },
-    editor_options: { daily: "Journalières", hourly: "Horaires", right: "À droite du bandeau", below: "Sous les puces" }
+    editor_options: { daily: "Journalières", hourly: "Horaires", right: "À droite du bandeau", below: "Sous les puces",
+      auto: "Auto (compacte sur téléphone)", compact: "Compacte", full: "Scène complète" }
   }
 };
 
@@ -1070,6 +1074,8 @@ ha-card.hero.clickable { cursor: pointer; }
   .hero-art { height: auto; width: 100%; -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 42%); mask-image: linear-gradient(180deg, transparent 0%, #000 42%); }
   /* room for the opaque part of the scene: it is 640/260 wide-to-high (40.6cqi) and its top 42 % fades under the text */
   .hero-body { padding-bottom: 26cqi; justify-content: flex-start; }
+  /* layout: compact (default on phones): no room kept for the scene, it sits behind the bottom of the text */
+  .hero.compact .hero-body { padding-bottom: clamp(22px, 4cqi, 36px); }
   .hero-tag { top: auto; bottom: 12px; }
   .clock { font-size: clamp(3.2rem, 18cqi, 5rem); }
 }
@@ -1372,6 +1378,22 @@ function normIcon(i) {
   return "mdi:" + s.replace(/^mdi-/, "");
 }
 
+/* ------------------------------------------------------------------ layout of narrow cards */
+const LAYOUTS = ["auto", "compact", "full"];
+
+/* Same "mobile" breakpoint as Home Assistant's screen condition (frontend: BREAKPOINT_VALUES = [0, 768, 1024, 1280]). */
+const MOBILE_QUERY = "(max-width: 767px)";
+
+/**
+ * "compact": the scene sits behind the bottom of the text (shortest card).
+ * "full": room is kept under the chips so the whole scene is visible.
+ * "auto": compact on phones (Home Assistant's mobile breakpoint), full on tablets and computers.
+ */
+function resolveLayout(layout, isMobile) {
+  if (layout === "compact" || layout === "full") return layout;
+  return isMobile ? "compact" : "full";
+}
+
 /* ---- src/card.js ---- */
 /* Dynamic Home Card — a Home Assistant Lovelace card.
    Animated home banner: the sky follows the real sun, the scene follows the real weather,
@@ -1382,7 +1404,7 @@ function normIcon(i) {
 
 
 
-const VERSION = "0.2.1";
+const VERSION = "0.3.0";
 const TAG = "dynamic-home-card";
 const { AR, AMB, FX } = ENGINE;
 const HOLD_MS = 500, DOUBLE_TAP_MS = 250;
@@ -1472,10 +1494,11 @@ class DynamicHomeCard extends HTMLElement {
       return n;
     });
     const forecast = normalizeForecast(config.forecast, config.show_forecast);
+    if (config.layout !== undefined && LAYOUTS.indexOf(config.layout) < 0) throw new Error(`Unknown layout "${config.layout}". Valid: ${LAYOUTS.join(", ")}`);
     const old = this._config;
     this._config = Object.assign({
       show_time: true, show_date: true, show_greeting: true, show_world_name: false,
-      theme: "auto", fonts: "google", windows: "auto", weather_sky: true, time_format: "auto", language: "auto",
+      theme: "auto", fonts: "google", windows: "auto", weather_sky: true, time_format: "auto", language: "auto", layout: "auto",
       sun_entity: "sun.sun"
     }, config, { _world: world, _effect: effect, _chips: chips, _forecast: forecast });
     if (this._built) {
@@ -1530,6 +1553,7 @@ class DynamicHomeCard extends HTMLElement {
           { name: "language", selector: { select: { mode: "dropdown", options: [{ value: "auto", label: "auto" }, { value: "fr", label: "Français" }, { value: "en", label: "English" }] } } },
           { name: "theme", selector: { select: { mode: "dropdown", options: ["auto", "dark", "light"].map((v) => ({ value: v, label: v })) } } },
           { name: "time_format", selector: { select: { mode: "dropdown", options: ["auto", "24", "12"].map((v) => ({ value: v, label: v })) } } },
+          { name: "layout", default: "auto", selector: { select: { mode: "dropdown", options: lopt(LAYOUTS) } } },
           { name: "name", selector: { text: {} } }
         ] },
         { type: "grid", name: "", schema: [
@@ -1556,7 +1580,7 @@ class DynamicHomeCard extends HTMLElement {
 
   connectedCallback() {
     this._connected = true;
-    if (this._built) { this._startTimer(); this._update(true); this._resubscribeTemplates(); this._resubscribeForecast(true); }
+    if (this._built) { this._watchLayout(); this._startTimer(); this._update(true); this._resubscribeTemplates(); this._resubscribeForecast(true); }
   }
   disconnectedCallback() {
     this._connected = false;
@@ -1564,6 +1588,7 @@ class DynamicHomeCard extends HTMLElement {
     if (this._fx) this._fx.stop();
     this._unsubscribeTemplates();
     this._unsubscribeForecast();
+    this._unwatchLayout();
     if (this._ro) this._ro.disconnect();
     if (this._io) this._io.disconnect();
     this._fxKey = "";
@@ -1611,7 +1636,32 @@ class DynamicHomeCard extends HTMLElement {
       this._io.observe(card);
     }
     this._buildChips();
+    this._watchLayout();
     this._startTimer();
+  }
+
+  /* ---------------- layout (compact / full), "auto" follows Home Assistant's mobile breakpoint ---------------- */
+  _watchLayout() {
+    this._unwatchLayout();
+    const mq = typeof window !== "undefined" && window.matchMedia ? window.matchMedia(MOBILE_QUERY) : null;
+    if (!mq) return;
+    this._mq = mq;
+    this._mqHandler = () => this._applyLayout();
+    if (mq.addEventListener) mq.addEventListener("change", this._mqHandler);
+    else if (mq.addListener) mq.addListener(this._mqHandler); // Safari < 14
+  }
+  _unwatchLayout() {
+    const mq = this._mq, h = this._mqHandler;
+    this._mq = null; this._mqHandler = null;
+    if (!mq || !h) return;
+    if (mq.removeEventListener) mq.removeEventListener("change", h);
+    else if (mq.removeListener) mq.removeListener(h);
+  }
+  _applyLayout() {
+    if (!this._built || !this._config) return;
+    const layout = resolveLayout(this._config.layout, !!(this._mq && this._mq.matches));
+    this.dataset.layout = layout;
+    this._card.classList.toggle("compact", layout === "compact");
   }
 
   _startTimer() {
@@ -1850,6 +1900,7 @@ class DynamicHomeCard extends HTMLElement {
     }
     const dark = c.theme === "dark" ? true : c.theme === "light" ? false : !(hass && hass.themes && hass.themes.darkMode === false);
     this.dataset.theme = dark ? "dark" : "light";
+    this._applyLayout();
     if (c.height !== undefined) this.style.setProperty("--dhc-height", typeof c.height === "number" ? c.height + "px" : String(c.height));
     this._card.classList.toggle("clickable", hasAction(c.tap_action) || hasAction(c.hold_action) || hasAction(c.double_tap_action));
 

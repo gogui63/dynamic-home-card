@@ -18,9 +18,11 @@ export const I18N = {
       show_greeting: "Show greeting", show_world_name: "Show world name", weather_sky: "Sky follows the weather",
       windows: "Window lights", effect_intensity: "Effect intensity",
       show_forecast: "Show forecast", forecast: "Forecast", type: "Forecast type",
-      position: "Position", count: "Days or hours shown", decimals: "Decimals", range_bar: "Min/max bar"
+      position: "Position", count: "Days or hours shown", decimals: "Decimals", range_bar: "Min/max bar",
+      layout: "Layout on narrow cards"
     },
-    editor_options: { daily: "Daily", hourly: "Hourly", right: "Right of the banner", below: "Below the chips" }
+    editor_options: { daily: "Daily", hourly: "Hourly", right: "Right of the banner", below: "Below the chips",
+      auto: "Auto (compact on phones)", compact: "Compact", full: "Full scene" }
   },
   fr: {
     greetings: { night: "Bonne nuit", morning: "Bonjour", afternoon: "Bon après-midi", evening: "Bonsoir" },
@@ -37,9 +39,11 @@ export const I18N = {
       show_date: "Afficher la date", show_greeting: "Afficher la salutation", show_world_name: "Afficher le nom du monde",
       weather_sky: "Le ciel suit la météo", windows: "Fenêtres éclairées", effect_intensity: "Intensité de l'effet",
       show_forecast: "Afficher les prévisions", forecast: "Prévisions", type: "Type de prévisions",
-      position: "Position", count: "Nombre de jours ou d'heures", decimals: "Décimales", range_bar: "Barre min/max"
+      position: "Position", count: "Nombre de jours ou d'heures", decimals: "Décimales", range_bar: "Barre min/max",
+      layout: "Mise en page sur carte étroite"
     },
-    editor_options: { daily: "Journalières", hourly: "Horaires", right: "À droite du bandeau", below: "Sous les puces" }
+    editor_options: { daily: "Journalières", hourly: "Horaires", right: "À droite du bandeau", below: "Sous les puces",
+      auto: "Auto (compacte sur téléphone)", compact: "Compacte", full: "Scène complète" }
   }
 };
 

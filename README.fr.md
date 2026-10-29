@@ -84,6 +84,7 @@ Toutes les options, puces et actions sont décrites dans le [README anglais](REA
 | `language` | `auto` | `auto` (profil HA), `fr`, `en`. |
 | `fonts` | `google` | `theme` pour utiliser la police du thème HA (aucune requête externe). |
 | `windows` | `auto` | Fenêtres éclairées : `auto` (la nuit), `on`, `off`, une entité ou une liste d'entités. |
+| `layout` | `auto` | Carte étroite (< 600 px) : `compact` (la scène passe derrière le bas du texte, carte la plus courte), `full` (place réservée sous les puces, toute la scène est visible) ou `auto` (compacte sur téléphone, complète sur tablette et ordinateur, selon le seuil « mobile » de Home Assistant : écran < 768 px). Sans effet sur une carte large, où la scène est à droite. |
 | `chips` | `[weather]` | Liste des puces. |
 | `show_forecast` | — | Interrupteur des prévisions dans l'éditeur visuel. `false` les masque même si `forecast` est défini. |
 | `forecast` | `false` | `true` ou un objet pour afficher les prévisions, voir [Prévisions](#prévisions). |
